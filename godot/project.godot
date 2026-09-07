@@ -1,0 +1,65 @@
+; LEVO Printer Farm — Godot 4 client for the Levonis platform.
+;
+; The farm is the game. Everything visual is drawn procedurally from one fixed
+; 2:1 dimetric projection so every station shares the exact same perspective,
+; and every position comes from the grid in scripts/core/Iso.gd.
+
+config_version=5
+
+[application]
+
+config/name="LEVO Printer Farm"
+config/description="Run a 3D-printing farm. A game for the Levonis platform."
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.8", "GL Compatibility")
+config/icon="res://icon.svg"
+boot_splash/bg_color=Color(0.76, 0.91, 0.97, 1)
+boot_splash/show_image=false
+
+[autoload]
+
+Palette="*res://scripts/core/Palette.gd"
+Iso="*res://scripts/core/Iso.gd"
+I18n="*res://autoload/I18n.gd"
+ServerClock="*res://autoload/ServerClock.gd"
+Net="*res://autoload/Net.gd"
+Config="*res://autoload/Config.gd"
+GameState="*res://autoload/GameState.gd"
+Audio="*res://autoload/Audio.gd"
+Events="*res://autoload/Events.gd"
+
+[display]
+
+; Portrait-first. 390x844 is the iPhone reference the design targets;
+; canvas_items + expand keeps 360 and 430 wide phones and tablets correct.
+window/size/viewport_width=390
+window/size/viewport_height=844
+window/size/window_width_override=390
+window/size/window_height_override=844
+window/handheld/orientation=1
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/energy_saving/keep_screen_on=false
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[physics]
+
+common/physics_ticks_per_second=30
+2d/default_gravity=0.0
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
+anti_aliasing/quality/msaa_2d=1
+environment/defaults/default_clear_color=Color(0.76, 0.91, 0.97, 1)
+2d/snap/snap_2d_transforms_to_pixel=false
+
+[gui]
+
+theme/custom="res://theme/farm_theme.tres"
+theme/default_font_antialiasing=1

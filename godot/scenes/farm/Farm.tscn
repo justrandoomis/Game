@@ -1,0 +1,38 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/farm/FarmView.gd" id="1_farm"]
+[ext_resource type="Script" path="res://scripts/farm/FarmCamera.gd" id="2_camera"]
+[ext_resource type="Script" path="res://scripts/farm/FloorLayer.gd" id="3_floor"]
+[ext_resource type="Script" path="res://scripts/farm/Decor.gd" id="4_decor"]
+[ext_resource type="PackedScene" path="res://scenes/farm/FilamentRack.tscn" id="5_rack"]
+[ext_resource type="PackedScene" path="res://scenes/farm/MaintenanceBench.tscn" id="6_bench"]
+
+[node name="Farm" type="Node2D"]
+script = ExtResource("1_farm")
+
+[node name="Camera" type="Camera2D" parent="."]
+script = ExtResource("2_camera")
+
+[node name="World" type="Node2D" parent="."]
+
+[node name="Floor" type="Node2D" parent="World"]
+z_index = -20
+script = ExtResource("3_floor")
+
+[node name="Decor" type="Node2D" parent="World"]
+z_index = -10
+script = ExtResource("4_decor")
+
+[node name="Fixtures" type="Node2D" parent="World"]
+y_sort_enabled = true
+
+[node name="FilamentRack" parent="World/Fixtures" instance=ExtResource("5_rack")]
+
+[node name="MaintenanceBench" parent="World/Fixtures" instance=ExtResource("6_bench")]
+
+[node name="Stations" type="Node2D" parent="World"]
+y_sort_enabled = true
+
+[node name="Workers" type="Node2D" parent="World"]
+y_sort_enabled = true
+z_index = 5

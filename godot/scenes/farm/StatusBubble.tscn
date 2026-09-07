@@ -1,0 +1,17 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/farm/StatusBubble.gd" id="1_bubble"]
+
+[node name="StatusBubble" type="Node2D"]
+script = ExtResource("1_bubble")
+
+[node name="Text" type="Label" parent="."]
+offset_left = -24.0
+offset_top = -25.0
+offset_right = 40.0
+offset_bottom = -5.0
+theme_override_colors/font_color = Color(0.137, 0.196, 0.294, 1)
+theme_override_font_sizes/font_size = 12
+text = "Idle"
+horizontal_alignment = 0
+vertical_alignment = 1

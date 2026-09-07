@@ -1,0 +1,25 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/farm/PrinterStation.gd" id="1_station"]
+[ext_resource type="PackedScene" path="res://scenes/farm/Printer.tscn" id="2_printer"]
+[ext_resource type="PackedScene" path="res://scenes/farm/StatusBubble.tscn" id="3_bubble"]
+
+[node name="PrinterStation" type="Node2D"]
+script = ExtResource("1_station")
+
+[node name="Printer" parent="." instance=ExtResource("2_printer")]
+position = Vector2(0, -42)
+
+[node name="Label" type="Label" parent="."]
+offset_left = -30.0
+offset_top = 14.0
+offset_right = 30.0
+offset_bottom = 34.0
+theme_override_colors/font_color = Color(0.137, 0.196, 0.294, 1)
+theme_override_font_sizes/font_size = 13
+text = "P1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Bubble" parent="." instance=ExtResource("3_bubble")]
+position = Vector2(0, -104)

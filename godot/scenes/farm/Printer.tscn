@@ -1,0 +1,21 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/farm/Printer.gd" id="1_printer"]
+[ext_resource type="Script" path="res://scripts/farm/PrintModel.gd" id="2_model"]
+[ext_resource type="Script" path="res://scripts/farm/PrintHead.gd" id="3_head"]
+[ext_resource type="Script" path="res://scripts/farm/StatusLight.gd" id="4_light"]
+
+[node name="Printer" type="Node2D"]
+script = ExtResource("1_printer")
+
+[node name="Model" type="Node2D" parent="."]
+position = Vector2(0, -13)
+script = ExtResource("2_model")
+
+[node name="Head" type="Node2D" parent="."]
+position = Vector2(0, -18)
+script = ExtResource("3_head")
+
+[node name="StatusLight" type="Node2D" parent="."]
+position = Vector2(20, -4)
+script = ExtResource("4_light")

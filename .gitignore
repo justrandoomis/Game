@@ -1,0 +1,14 @@
+node_modules
+dist
+.env
+.env.local
+*.local
+.data
+
+# Godot editor cache (regenerated on first open). The .import files beside
+# each asset ARE committed, so a clean checkout imports reproducibly.
+godot/.godot/
+godot/android/
+
+# Godot export output
+client/
