@@ -51,7 +51,13 @@ that instead — see `.env.example`.
 npm test             # 51 tests over the grid, the simulation and the server
 npm run lint         # tsc --noEmit
 npm run game:check   # imports the Godot project and boots it against the API
+npm run game:bake    # re-renders the workshop props from the KayKit models
 ```
+
+`game:bake` is the only script that needs a display, because it renders. On a
+headless machine: `xvfb-run -a godot --path godot res://tools/BakeProps.tscn`.
+You only need it after editing `godot/tools/prop_recipes.json` — the sprites it
+produces are committed.
 
 ### Engine version
 
@@ -163,6 +169,61 @@ catalog can be swapped without a deploy.
 deliberately hard to reach and is **off by default**: it needs an admin to
 enable it, a minimum level, a minimum reputation, and it is capped per rolling
 week per player, with every claim recorded. There is no unlimited farming path.
+
+
+---
+
+## Where the art comes from
+
+The workshop is drawn from two sources that share one perspective.
+
+**Anything that shows live state is drawn as flat polygons** through
+`IsoDraw.gd` — the machines, the part appearing on the plate layer by layer,
+each spool and how much filament is left on it, status lights, empty bays. It
+recolours from `Palette.gd` for free, which is why a fleet in six shell
+colours costs one drawing routine.
+
+**The furniture is modelled.** Work tables, walls, shelving, crates, plants
+and the rug come from [KayKit](https://kaylousberg.com) low-poly packs. They
+are not loaded as meshes. `godot/tools/BakeProps.gd` renders each chosen model
+once, offline, through an orthographic camera set to the game's own
+projection — yaw 45°, pitch 30°, which is exactly the 2:1 dimetric the rest of
+the farm is drawn in — and writes a sprite plus the anchor pixel that has to
+land on a grid position:
+
+```
+godot/assets/kaykit/     source models, unmodified   (build input, never shipped)
+godot/tools/             prop_recipes.json + the baker
+godot/assets/props/      the sprites and props.json  (what the game draws)
+```
+
+Which models are used, and at what size, is entirely
+`godot/tools/prop_recipes.json`. Two scales matter:
+
+| | px per model unit | why |
+|---|---|---|
+| props | 44 | a 2-unit table lands 124 px wide — 84% of a 148 px cell, so stations keep a visible gap |
+| walls | 26.163 | `TILE_W / 2 / (4·cos45°)`, so a 4-unit KayKit wall spans **exactly one cell edge** and wall runs tile the room with no seam |
+
+That second number is the point: the room's shell is built from the same grid
+as the machines, so it grows with the workshop and stays square to it.
+
+Sprites are baked at 2× and drawn with mipmaps, so they stay sharp when the
+player pinches in and quiet when a 6×6 farm is framed whole. The source models
+are excluded from every export preset — the shipped web build contains no
+mesh, no material and no glTF, only ~300 KB of PNG.
+
+Nothing about the scene graph changed to get modelled furniture in: every prop
+is drawn inside an existing `_draw()`, so depth ordering, hit testing and the
+camera are the code they always were.
+
+### Asset credits
+
+The 3D models are **KayKit** packs by [Kay
+Lousberg](https://www.kaylousberg.com) — *Furniture Bits*, *Restaurant Bits*
+and *Prototype Bits*, all **CC0**. Only the twenty models the workshop
+actually uses are vendored, unmodified, under `godot/assets/kaykit/`, each pack
+with its own `LICENSE.txt`.
 
 ---
 

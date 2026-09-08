@@ -37,6 +37,12 @@ const INK_FAINT := Color("A3AEC0")
 const WOOD := Color("DCA96A")
 const WOOD_MID := Color("C68F51")
 const WOOD_DARK := Color("A5713C")
+## The wood of the baked KayKit props, sampled from assets/props/. It is the
+## same saturation and brightness as WOOD above and a warmer hue — a terracotta
+## rather than a honey oak. Anything drawn by hand that touches a baked prop
+## uses this, so a painted surface and a modelled one are the same timber.
+const PROP_WOOD := Color("D88865")
+const PROP_WOOD_DARK := Color("B5674E")
 const STEEL := Color("C7D0DA")
 const STEEL_MID := Color("A6B2C0")
 const STEEL_DARK := Color("7E8B9C")

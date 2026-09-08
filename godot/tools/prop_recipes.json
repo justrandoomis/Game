@@ -1,0 +1,50 @@
+{
+	"_comment": [
+		"WHICH KayKit MODELS BECOME WORKSHOP PROPS, AND AT WHAT SIZE.",
+		"",
+		"This is the only place the asset choice lives. tools/BakeProps.gd reads it,",
+		"renders each model from the game's own fixed 2:1 dimetric camera, and writes",
+		"a sprite plus its anchor into assets/props/. Nothing at runtime ever touches",
+		"a mesh: the game ships flat sprites that already match the grid.",
+		"",
+		"px_per_unit is how many screen pixels one KayKit model unit becomes.",
+		"  prop  44.0    — free-standing furniture. A 2-unit table lands 124 px wide,",
+		"                  which is 84% of a 148 px floor cell, so stations keep a gap.",
+		"  wall  26.163  — TILE_W/2 / (4 * cos45). A 4-unit KayKit wall then spans",
+		"                  exactly one cell edge, so wall segments tile the grid.",
+		"",
+		"yaw rotates the model about Y before baking. The camera never moves, so this",
+		"is how one wall model yields both of the room's two back walls."
+	],
+	"supersample": 2.0,
+	"scales": {
+		"prop": 44.0,
+		"wall": 26.163
+	},
+	"props": [
+		{ "id": "station_table", "src": "furniture/table_medium",           "scale": "prop", "note": "the printer workbench — one per station, every station identical" },
+
+		{ "id": "wall_right",    "src": "restaurant/wall",                  "scale": "wall", "yaw": 0,    "note": "back wall running lower-right, tiled one segment per cell" },
+		{ "id": "wall_left",     "src": "restaurant/wall",                  "scale": "wall", "yaw": -90,  "note": "same model, other wall" },
+		{ "id": "window_right",  "src": "restaurant/wall_window_open",      "scale": "wall", "yaw": 0 },
+		{ "id": "window_left",   "src": "restaurant/wall_window_open",      "scale": "wall", "yaw": -90,  "note": "the daylight the palette is built around" },
+		{ "id": "hatch_right",   "src": "restaurant/wall_orderwindow",      "scale": "wall", "yaw": 0,    "note": "customer collection hatch" },
+
+		{ "id": "shelf",         "src": "furniture/shelf_B_large",          "scale": "prop", "note": "filament rack — one texture, drawn three times" },
+		{ "id": "bench_cabinet", "src": "furniture/cabinet_medium",         "scale": "prop", "note": "maintenance bench base" },
+		{ "id": "dry_cabinet",   "src": "restaurant/fridge_A",              "scale": "prop", "note": "filament dry cabinet, appears once the workshop is big enough" },
+
+		{ "id": "crate",         "src": "restaurant/crate",                 "scale": "prop", "note": "parts bin under a table, and floor storage" },
+		{ "id": "box",           "src": "prototype/Box_A",                  "scale": "prop", "note": "packed print, ready to ship" },
+		{ "id": "box_taped",     "src": "prototype/Box_C",                  "scale": "prop" },
+		{ "id": "pallet",        "src": "prototype/Pallet_Small",           "scale": "prop" },
+
+		{ "id": "plant_small",   "src": "furniture/cactus_small_A",         "scale": "prop" },
+		{ "id": "plant_medium",  "src": "furniture/cactus_medium_A",        "scale": "prop" },
+		{ "id": "rug",           "src": "furniture/rug_rectangle_stripes_B","scale": "prop", "note": "warms the walkway" },
+		{ "id": "stool",         "src": "furniture/chair_stool_wood",       "scale": "prop" },
+		{ "id": "lamp",          "src": "furniture/lamp_standing",          "scale": "prop" },
+		{ "id": "picture",       "src": "furniture/pictureframe_medium",    "scale": "prop", "note": "on the wall, replacing the drawn posters" },
+		{ "id": "books",         "src": "furniture/book_set",               "scale": "prop", "note": "manuals on the rack" }
+	]
+}

@@ -1,8 +1,10 @@
 ; LEVO Printer Farm — Godot 4 client for the Levonis platform.
 ;
-; The farm is the game. Everything visual is drawn procedurally from one fixed
-; 2:1 dimetric projection so every station shares the exact same perspective,
-; and every position comes from the grid in scripts/core/Iso.gd.
+; The farm is the game. Everything visual shares one fixed 2:1 dimetric
+; projection so every station has the exact same perspective, and every
+; position comes from the grid in scripts/core/Iso.gd. Machines and anything
+; showing live state are drawn as flat polygons; the workshop furniture is
+; baked sprites rendered from that same projection (see tools/BakeProps.gd).
 
 config_version=5
 
@@ -20,6 +22,7 @@ boot_splash/show_image=false
 
 Palette="*res://scripts/core/Palette.gd"
 Iso="*res://scripts/core/Iso.gd"
+Props="*res://scripts/core/Props.gd"
 I18n="*res://autoload/I18n.gd"
 ServerClock="*res://autoload/ServerClock.gd"
 Net="*res://autoload/Net.gd"
@@ -58,6 +61,16 @@ textures/vram_compression/import_etc2_astc=true
 anti_aliasing/quality/msaa_2d=1
 environment/defaults/default_clear_color=Color(0.76, 0.91, 0.97, 1)
 2d/snap/snap_2d_transforms_to_pixel=false
+
+[importer_defaults]
+
+; Props are baked larger than they are ever drawn, so that they stay sharp
+; when the player pinches in. Mipmaps are what stops them shimmering when the
+; camera is pulled back over a large workshop instead.
+texture={
+"mipmaps/generate": true,
+"detect_3d/compress_to": 0
+}
 
 [gui]
 

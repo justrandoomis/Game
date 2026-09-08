@@ -16,6 +16,10 @@ var _health: float = 100.0
 var _remaining_text: String = ""
 var _alert: bool = false
 var _time: float = 0.0
+## Resting height above the station, set by the station that owns this bubble
+## so a failure alert returns to the same place the bubble started. Without it
+## an alerting bubble drops onto the machine it is meant to be pointing at.
+var _base: float = -62.0
 
 @onready var text_label: Label = $Text
 
@@ -58,8 +62,14 @@ func show_status(status: String, progress: float, job: Dictionary, health: float
 	queue_redraw()
 
 
+## Called by the station once, with the height its machine reaches.
+func set_base(y: float) -> void:
+	_base = y
+	position.y = y
+
+
 func _base_y() -> float:
-	return -62.0
+	return _base
 
 
 func _process(delta: float) -> void:

@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "game:import": "godot --headless --path godot --import && godot --headless --path godot --import",
+    "game:bake": "godot --path godot res://tools/BakeProps.tscn && npm run game:import",
     "game:check": "npm run game:import && godot --headless --path godot -- --selftest",
     "game:export:web": "godot --headless --path godot --export-release Web ../client/web/index.html"
   },

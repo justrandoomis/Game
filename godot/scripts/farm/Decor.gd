@@ -1,13 +1,24 @@
 extends Node2D
 ## Workshop dressing.
 ##
-## Plants, boxes and a doormat, every one of them standing on a cell of the
-## service band that surrounds the station grid. Because decor is placed by the
-## same grid the stations use, it can never wander into a station's space or
-## make the rows look uneven — and it grows outward with the room.
+## Plants, packing crates and a rug, every one of them standing on a cell of
+## the service band that surrounds the station grid. Because decor is placed by
+## the same grid the stations use, it can never wander into a station's space
+## or make the rows look uneven — and it grows outward with the room.
+##
+## Every piece here is a baked KayKit prop drawn from the shared catalogue, so
+## dressing the room costs a few kilobytes and no extra geometry. What is on
+## the floor is deliberately sparse: the workshop should read as a place
+## someone works, not a showroom.
+
+const RUG_SCALE := 0.66
 
 var rows: int = 2
 var cols: int = 2
+
+
+func _ready() -> void:
+	Props.prepare(self)
 
 
 func configure(next_rows: int, next_cols: int) -> void:
@@ -24,45 +35,35 @@ func _draw() -> void:
 	#
 	# Everything else is anchored to a service-band cell, so decor grows
 	# outward with the room and never crowds the grid.
-	_plant(Iso.cell_to_world(-1, cols), 0.95)
-	_plant(Iso.cell_to_world(rows, cols), 0.84)
-	_mat(Iso.cell_to_world(rows, cols - 1))
-	_boxes(Iso.cell_to_world(rows, -1))
-	# A longer left-hand walkway earns one more plant.
+	_rug(Iso.cell_to_world(rows, cols - 1))
+	_plant(Iso.cell_to_world(-1, cols), "plant_medium", 0.95)
+	_plant(Iso.cell_to_world(rows, cols), "plant_small", 1.0)
+	_outgoing(Iso.cell_to_world(rows, -1))
+
+	# A longer left-hand walkway earns the things a growing farm needs: a
+	# reading lamp over the aisle, and a cabinet to keep filament dry.
 	if rows >= 3:
-		_plant(Iso.cell_to_world(rows - 2, -1), 0.78)
+		Props.draw(self, "lamp", Iso.cell_to_world(rows - 2, -1) + Vector2(6.0, 0.0))
+	if rows >= 4:
+		Props.draw(self, "dry_cabinet", Iso.cell_to_world(rows - 3, -1))
 
 
-func _plant(at: Vector2, scale_factor: float) -> void:
-	IsoDraw.shadow(self, at, 16.0 * scale_factor, 0.10)
-	IsoDraw.solid(self, at, 14.0 * scale_factor, 7.0 * scale_factor, 16.0 * scale_factor, Palette.CREAM)
-	IsoDraw.diamond(self, at + Vector2(0, -16.0 * scale_factor),
-		12.0 * scale_factor, 6.0 * scale_factor, Color("6E5B45"))
-
-	# A fixed fan of leaves — the plant looks the same every time it is drawn.
-	var leaves := [
-		Vector2(-12.0, -32.0), Vector2(-4.0, -43.0), Vector2(5.0, -41.0),
-		Vector2(13.0, -30.0), Vector2(0.0, -26.0),
-	]
-	var greens := [Color("4FA96E"), Color("5FC98A"), Color("74D69B"), Color("4FA96E"), Color("3F8F5C")]
-	var base := at + Vector2(0, -16.0 * scale_factor)
-	for i in leaves.size():
-		var tip: Vector2 = at + leaves[i] * scale_factor
-		draw_colored_polygon(PackedVector2Array([
-			base,
-			base.lerp(tip, 0.55) + Vector2(-5.5 * scale_factor, 0),
-			tip,
-			base.lerp(tip, 0.55) + Vector2(5.5 * scale_factor, 0),
-		]), greens[i])
+func _plant(at: Vector2, prop: String, scale: float) -> void:
+	IsoDraw.shadow(self, at, Props.half_width(prop, scale) * 0.62, 0.10)
+	Props.draw(self, prop, at, scale)
 
 
-func _mat(at: Vector2) -> void:
-	IsoDraw.diamond(self, at, 50.0, 25.0, Color("BFD9E6"))
-	IsoDraw.diamond(self, at, 43.0, 21.5, Color("A8C9DB"))
+func _rug(at: Vector2) -> void:
+	# Kept under a tile wide, so the rug dresses the walkway without reading as
+	# another floor.
+	Props.draw(self, "rug", at, RUG_SCALE)
 
 
-func _boxes(at: Vector2) -> void:
-	IsoDraw.shadow(self, at, 26.0, 0.10)
-	IsoDraw.solid(self, at + Vector2(-6.0, 4.0), 23.0, 11.5, 23.0, Color("D9B487"))
-	IsoDraw.solid(self, at + Vector2(-6.0, -19.0), 18.0, 9.0, 18.0, Color("CFA97A"))
-	draw_line(at + Vector2(-20.0, -45.0), at + Vector2(8.0, -45.0), Color("B8905F"), 2.0)
+## Finished work waiting to go out: a pallet, a crate of parts and two packed
+## boxes. This is the only place in the room that says the farm ships anything.
+func _outgoing(at: Vector2) -> void:
+	IsoDraw.shadow(self, at, 30.0, 0.10)
+	Props.draw(self, "pallet", at, 0.62)
+	Props.draw(self, "crate", at + Vector2(-14.0, -6.0), 0.42)
+	Props.draw(self, "box_taped", at + Vector2(18.0, 2.0), 0.78)
+	Props.draw(self, "box", at + Vector2(12.0, -16.0), 0.70)

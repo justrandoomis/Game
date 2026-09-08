@@ -59,9 +59,12 @@ func _ready() -> void:
 ## it got back and exits. Used by CI to prove the client and server still agree
 ## without needing a display.
 func _run_selftest() -> void:
+	var missing_props := Props.missing()
 	var summary := {
 		"api": Net.base_url(),
 		"config_loaded": Config.is_loaded,
+		"props": Props.count(),
+		"props_missing": missing_props,
 		"state_loaded": GameState.ready_state,
 		"clock_synced": ServerClock.has_sync(),
 		"level": GameState.level(),
@@ -73,7 +76,10 @@ func _run_selftest() -> void:
 		"stations_built": farm.get_node("World/Stations").get_child_count(),
 	}
 	print("SELFTEST ", JSON.stringify(summary))
-	get_tree().quit(0 if GameState.ready_state else 1)
+	# A workshop with unbaked props renders holes rather than failing, so the
+	# boot check is where that has to be caught.
+	var ok := GameState.ready_state and Props.count() > 0 and missing_props.is_empty()
+	get_tree().quit(0 if ok else 1)
 
 
 ## `-- --screenshot=path.png [--screen=orders]` renders one frame to disk.

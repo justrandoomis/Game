@@ -78,15 +78,45 @@ step and in many small steps produces identical coins and print counts.
 
 ## The rendering approach
 
-The farm ships **no sprite atlas and no 3D models**. Every solid is drawn from
-flat polygons through two primitives in `IsoDraw.gd` — an isometric box and an
-isometric diamond. That is a deliberate choice for this game:
+The farm is drawn in 2D, in one fixed 2:1 dimetric projection, from two
+sources that share that single perspective:
 
-- Every station is drawn by the same routine, so none can end up at a slightly
-  different angle or size from its neighbour.
-- Machines, filament colours and floor tiers recolour from the palette for free.
-- It is tiny to download and cheap to draw on a mid-range phone.
-- It stays crisp at any pixel density and any zoom.
+**Flat polygons**, through the isometric box and diamond primitives in
+`IsoDraw.gd`. Everything that has to answer to live server state is drawn this
+way — the machines, the part appearing on the plate, the spools on the rack
+and how full each one is, status lights, progress bars, empty bays. A drawn
+solid recolours from the palette for free, which is the whole reason a fleet
+of printers in six shell colours costs one drawing routine.
+
+**Baked props**, in `assets/props/`. The furniture of the workshop — the work
+tables, the walls, the shelving, crates, plants, the rug — comes from KayKit
+low-poly models that `tools/BakeProps.gd` has already rendered, offline, from
+an orthographic camera set to this game's exact projection. What ships is a
+folder of small PNGs. No mesh, no material and no 3D renderer reaches the
+device.
+
+Both halves therefore share one vanishing point and one grid, and a hand-drawn
+printer standing on a modelled table is in the same perspective as the table.
+
+### Why bake rather than model at runtime
+
+- The farm scene is `Node2D` and stays that way: nothing about depth ordering,
+  hit testing or the camera had to change to get modelled furniture into it.
+- A prop is one texture however many times it appears. A workshop of thirty-six
+  stations holds one table image.
+- The whole visual upgrade is a few hundred kilobytes of PNG. The source models
+  are excluded from every export preset — they are build inputs, not content.
+- Nothing is placed by hand: a prop is drawn at a point the grid returned, and
+  the wall model is baked at exactly four units to the cell so wall segments
+  tile the room with no seam.
+
+### Why not a sprite atlas
+
+Individual textures, not one packed sheet. Props are baked at twice their
+on-screen size and drawn with mipmaps so they survive the camera's zoom range;
+mipmapping an atlas bleeds neighbouring sprites into each other at the smaller
+levels. Twenty textures is well inside what 2D batching handles, and the whole
+set is smaller than a single atlas page would be.
 
 Printed parts are a stack of thin isometric slabs, and only the layers printed
 so far are drawn — so a part genuinely appears layer by layer as the job runs,

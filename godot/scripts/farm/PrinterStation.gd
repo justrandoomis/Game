@@ -1,27 +1,34 @@
 extends Node2D
 ## THE STANDARDISED PRINTER STATION.
 ##
-## One work table, drawn by one routine, used by every machine in the farm.
-## Its dimensions, height, orientation and perspective are constants — nothing
-## about a station changes because of which printer stands on it. That is what
-## keeps the workshop reading as clean rows and columns however large it grows.
+## One work table — the same baked model, at the same scale, under every
+## machine in the farm. Its size, height, orientation and perspective are
+## therefore identical everywhere, and the height a printer mounts at is
+## measured off the table model rather than typed in. That is what keeps the
+## workshop reading as clean rows and columns however large it grows.
 ##
 ## The station is placed by the grid (see scripts/core/Iso.gd); it never
 ## positions itself.
 
-## Table footprint — identical for every station in every room.
-const TABLE_HW := 58.0
-const TABLE_HH := 29.0
-const TABLE_TOP := 8.0
-const LEG_H := 34.0
-## Where a printer's feet meet the table top.
-const MOUNT_Y := -(LEG_H + TABLE_TOP)
+## The work table. One baked model for the whole farm, so no station can be a
+## different size, height or angle from the one beside it.
+const TABLE := "station_table"
+## Parts bins under the table, drawn from the crate model at a fraction of its
+## size — the same texture, not another asset.
+const BIN_SCALE := 0.34
+## Used only if the props have not been baked; the real value is measured from
+## the table model below.
+const MOUNT_FALLBACK := -38.0
 ## Local hit rectangle used for tapping. Constant, because every station is.
 const TAP_RECT := Rect2(-72.0, -132.0, 144.0, 166.0)
 
 @onready var printer: Node2D = $Printer
 @onready var bubble: Node2D = $Bubble
 @onready var label: Label = $Label
+
+## Where a printer's feet meet the table top. Read off the table model itself,
+## so the mount height and the table can never disagree.
+@onready var mount_y: float = -Props.top(TABLE) if Props.has(TABLE) else MOUNT_FALLBACK
 
 var slot_id: String = ""
 var station_label: String = "P1"
@@ -32,8 +39,9 @@ var _health: float = 100.0
 
 
 func _ready() -> void:
-	printer.position = Vector2(0, MOUNT_Y)
-	bubble.position = Vector2(0, MOUNT_Y - 76.0)
+	Props.prepare(self)
+	printer.position = Vector2(0, mount_y)
+	bubble.call("set_base", mount_y - 76.0)
 	_refresh_label()
 
 
@@ -85,7 +93,7 @@ func play_arrival() -> void:
 	var tween := create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(printer, "modulate:a", 1.0, 0.28)
-	tween.tween_property(printer, "position:y", MOUNT_Y, 0.5).from(MOUNT_Y - 60.0) \
+	tween.tween_property(printer, "position:y", mount_y, 0.5).from(mount_y - 60.0) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(printer, "scale", Vector2.ONE, 0.45) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
@@ -103,40 +111,22 @@ func contains_point(local_point: Vector2) -> bool:
 
 
 func _draw() -> void:
-	IsoDraw.shadow(self, Vector2(0, 2.0), TABLE_HW * 0.92, 0.12)
+	# The sprite carries no shadow of its own, so the table is grounded the
+	# same way every other solid in the room is.
+	IsoDraw.shadow(self, Vector2(0, 2.0), Props.half_width(TABLE) * 0.86, 0.12)
 
-	# Storage bins tucked under the table, as in a real print farm.
-	_draw_bin(Vector2(-20.0, 7.0))
-	_draw_bin(Vector2(19.0, 4.0))
+	# Parts bins tucked under the table, as in a real print farm. Drawn before
+	# the table so the table front hides their lower halves.
+	Props.draw(self, "crate", Vector2(-22.0, 9.0), BIN_SCALE)
+	Props.draw(self, "crate", Vector2(21.0, 5.0), BIN_SCALE)
 
-	# Four legs at the corners of the table's footprint, inset so the top
-	# visibly overhangs them.
-	var inset := 0.84
-	for corner in [
-		Vector2(0, -TABLE_HH * inset), Vector2(TABLE_HW * inset, 0),
-		Vector2(0, TABLE_HH * inset), Vector2(-TABLE_HW * inset, 0),
-	]:
-		IsoDraw.post(self, corner, 4.5, LEG_H, Palette.WOOD_DARK)
-
-	# The table top. Every station's is the same size, height and angle.
-	IsoDraw.box(
-		self, Vector2(0, -LEG_H), TABLE_HW, TABLE_HH, TABLE_TOP,
-		Palette.WOOD, Palette.WOOD_MID, Palette.WOOD_DARK
-	)
-	# A thin lighter edge so the top reads as a surface, not a flat shape.
-	draw_polyline(PackedVector2Array([
-		Vector2(-TABLE_HW, -LEG_H - TABLE_TOP), Vector2(0, -LEG_H - TABLE_TOP - TABLE_HH),
-		Vector2(TABLE_HW, -LEG_H - TABLE_TOP),
-	]), Palette.tint(Palette.WOOD, 0.28), 1.5, true)
+	# The work table. Every station's is the same model at the same scale, in
+	# the same projection, standing on the cell the grid gave it.
+	Props.draw(self, TABLE, Vector2.ZERO)
 
 	# Station name plate on the floor at the front edge.
 	IsoDraw.chip(self, Rect2(-27.0, 13.0, 54.0, 19.0), Palette.PAPER, 8.0)
 	IsoDraw.chip(self, Rect2(-27.0, 13.0, 54.0, 19.0), Color(0.14, 0.20, 0.29, 0.10), 8.0)
-
-
-func _draw_bin(at: Vector2) -> void:
-	IsoDraw.solid(self, at, 19.0, 9.5, 20.0, Palette.STEEL_MID)
-	draw_line(at + Vector2(-9.0, -20.0), at + Vector2(9.0, -20.0), Palette.STEEL_DARK, 1.5)
 
 
 ## Depth ordering happens between stations, in the Stations container, never
