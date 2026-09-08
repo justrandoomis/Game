@@ -16,6 +16,11 @@ const TAP_RECT := Rect2(-70.0, -96.0, 140.0, 132.0)
 var _busy: bool = false
 
 
+## Declared for the boot check — see PrinterStation.prop_ids().
+func prop_ids() -> PackedStringArray:
+	return PackedStringArray([CABINET, "stool", "books"])
+
+
 func _ready() -> void:
 	Props.prepare(self)
 

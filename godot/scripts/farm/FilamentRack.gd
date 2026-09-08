@@ -11,12 +11,20 @@ extends Node2D
 ## that came from the server; a baked sprite could not say that.
 
 const SHELF := "shelf"
+## The wall the rack is bolted to. Its height is what the stack has to fit in.
+const WALL := "wall_right"
 const SHELVES := 3
 const PER_SHELF := 5
-## Vertical pitch between shelves. Comfortably clears a full spool, and three
-## of them stay inside the wall they are fixed to.
-const SHELF_GAP := 28.0
-const BOTTOM_Y := -20.0
+
+## The stack is sized from the wall, not typed in. A shelf pitch that looked
+## right against one wall model puts the top row of spools in the sky against
+## a shorter one, and the rack is drawn before the room is, so nothing catches
+## it. Height of the bottom shelf, how far a spool sits above its plank, the
+## biggest a full spool gets, and the gap left under the wall's top edge:
+const BOTTOM := 6.0
+const SPOOL_LIFT := 8.0
+const SPOOL_RADIUS_MAX := 8.5
+const HEAD_ROOM := 4.0
 
 ## The rack stands on a cell of the back walkway, but it is fixed to the wall
 ## behind that cell — half a tile up and to the right, which is where the
@@ -27,6 +35,11 @@ const ON_WALL := Vector2(Iso.TILE_W * 0.25, -Iso.TILE_H * 0.25)
 const TAP_RECT := Rect2(-56.0, -136.0, 140.0, 162.0)
 
 var _spools: Array = []
+
+
+## Declared for the boot check — see PrinterStation.prop_ids().
+func prop_ids() -> PackedStringArray:
+	return PackedStringArray([SHELF, WALL, "box"])
 
 
 func _ready() -> void:
@@ -62,14 +75,22 @@ func _draw() -> void:
 		var column: int = index % PER_SHELF
 		# Evenly spaced along the plank, inset so none overhangs the end.
 		var t := lerpf(-0.80, 0.80, (float(column) + 0.5) / float(PER_SHELF))
-		var at := _shelf_base(index / PER_SHELF) + reach * t + Vector2(0, -plank - 8.0)
+		var at := _shelf_base(index / PER_SHELF) + reach * t + Vector2(0, -plank - SPOOL_LIFT)
 		var color := Palette.filament(String(spool.get("colorId", "white")))
 		var remaining := clampf(
 			float(spool.get("grams", 0.0)) / maxf(1.0, float(spool.get("capacity", 1000.0))),
 			0.05, 1.0
 		)
-		IsoDraw.spool(self, at, 5.5 + 3.0 * remaining, color)
+		IsoDraw.spool(self, at, SPOOL_RADIUS_MAX - 3.0 + 3.0 * remaining, color)
 
 
 func _shelf_base(shelf: int) -> Vector2:
-	return ON_WALL + Vector2(0, BOTTOM_Y - float(shelf) * SHELF_GAP)
+	return ON_WALL + Vector2(0, -(BOTTOM + float(shelf) * _pitch()))
+
+
+## Vertical pitch between shelves: whatever divides the usable wall evenly,
+## with the top spool of the top shelf still under the wall's top edge.
+func _pitch() -> float:
+	var ceiling := Props.top(WALL) - HEAD_ROOM
+	var spool_reach := Props.top(SHELF) + SPOOL_LIFT + SPOOL_RADIUS_MAX
+	return maxf(18.0, (ceiling - spool_reach - BOTTOM) / float(SHELVES - 1))

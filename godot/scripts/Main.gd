@@ -60,11 +60,13 @@ func _ready() -> void:
 ## without needing a display.
 func _run_selftest() -> void:
 	var missing_props := Props.missing()
+	var unknown_props := Props.unknown(_declared_prop_ids(farm))
 	var summary := {
 		"api": Net.base_url(),
 		"config_loaded": Config.is_loaded,
 		"props": Props.count(),
 		"props_missing": missing_props,
+		"props_unknown": unknown_props,
 		"state_loaded": GameState.ready_state,
 		"clock_synced": ServerClock.has_sync(),
 		"level": GameState.level(),
@@ -78,7 +80,8 @@ func _run_selftest() -> void:
 	print("SELFTEST ", JSON.stringify(summary))
 	# A workshop with unbaked props renders holes rather than failing, so the
 	# boot check is where that has to be caught.
-	var ok := GameState.ready_state and Props.count() > 0 and missing_props.is_empty()
+	var ok := GameState.ready_state and Props.count() > 0 \
+		and missing_props.is_empty() and unknown_props.is_empty()
 	get_tree().quit(0 if ok else 1)
 
 
@@ -108,6 +111,17 @@ func _capture(path: String) -> void:
 	image.save_png(path)
 	print("SCREENSHOT ", path)
 	get_tree().quit()
+
+
+## Every prop id the farm says it draws. Nodes declare them in prop_ids();
+## the boot check then proves each one is in the baked catalogue.
+func _declared_prop_ids(node: Node) -> PackedStringArray:
+	var out := PackedStringArray()
+	if node.has_method("prop_ids"):
+		out.append_array(node.call("prop_ids"))
+	for child in node.get_children():
+		out.append_array(_declared_prop_ids(child))
+	return out
 
 
 ## Bring the game up: balancing data, then the farm.

@@ -36,6 +36,14 @@ const PICTURE_Y := -57.0
 const PICTURE_SCALE := 0.62
 
 
+## Declared for the boot check — see PrinterStation.prop_ids().
+func prop_ids() -> PackedStringArray:
+	return PackedStringArray([
+		"wall_right", "wall_left", "window_right", "window_left",
+		"hatch_right", "picture",
+	])
+
+
 func _ready() -> void:
 	Props.prepare(self)
 
@@ -145,8 +153,13 @@ func _draw_walls() -> void:
 	# Left-hand wall, running to the lower left. It carries the windows: this
 	# is the shaded side, and the daylight coming through it is what the whole
 	# palette is built around.
+	#
+	# The maintenance bench stands on the last cell of this walkway and hangs
+	# its tool board on the wall behind it, so that segment is never glazed —
+	# the same consideration the right-hand wall gives the filament rack.
+	var bench_row := rows - 1
 	for step in rows + 2:
 		var row := step - 1
 		var at := Iso.cell_to_world(row, -1) + Vector2(-half.x * 0.5, -half.y * 0.5)
-		var glazed := row == 0 or (rows >= 3 and row == 2)
+		var glazed := row != bench_row and (row == 0 or (rows >= 3 and row == 2))
 		Props.draw(self, "window_left" if glazed else "wall_left", at, WALL_OVERLAP)

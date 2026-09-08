@@ -61,6 +61,18 @@ func count() -> int:
 	return _props.size()
 
 
+## Of the ids a node says it draws, the ones the catalogue does not have.
+## draw() is deliberately silent on an unknown id — it must never crash the
+## farm — so this is what turns a renamed or dropped prop into a build failure
+## instead of a hole in the room.
+func unknown(ids: PackedStringArray) -> PackedStringArray:
+	var out := PackedStringArray()
+	for id in ids:
+		if not _props.has(id) and not out.has(id):
+			out.append(id)
+	return out
+
+
 ## Catalogued props whose sprite will not load. Empty is the only good answer:
 ## anything listed here would silently draw nothing in the farm, so the boot
 ## check (Main.gd, `--selftest`) fails the build on it rather than shipping a

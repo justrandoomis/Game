@@ -38,6 +38,13 @@ var _status: String = "idle"
 var _health: float = 100.0
 
 
+## The props this station draws. Declared so --selftest can prove the ids
+## still resolve: Props.draw() on an unknown id is silent by design, which
+## would otherwise ship a farm of tables that are not there.
+func prop_ids() -> PackedStringArray:
+	return PackedStringArray([TABLE, "crate"])
+
+
 func _ready() -> void:
 	Props.prepare(self)
 	printer.position = Vector2(0, mount_y)

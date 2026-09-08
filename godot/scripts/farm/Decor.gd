@@ -46,6 +46,14 @@ var rows: int = 2
 var cols: int = 2
 
 
+## Declared for the boot check — see PrinterStation.prop_ids().
+func prop_ids() -> PackedStringArray:
+	return PackedStringArray([
+		"pallet", "crate", "box", "box_taped", "rug",
+		"plant_small", "plant_medium", "lamp",
+	])
+
+
 func _ready() -> void:
 	Props.prepare(self)
 
