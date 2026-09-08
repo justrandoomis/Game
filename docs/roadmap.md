@@ -12,6 +12,9 @@ place for the rest. That is what this is.
 - Empty bays drawn into the floor, with the next buyable one highlighted and
   the rest quietly locked
 - Filament rack that fills as stock grows; maintenance bench; grid-aligned decor
+- Workshop furniture — tables, walls, shelving, crates, plants — modelled
+  rather than drawn: KayKit low-poly models baked offline into sprites in the
+  game's own projection (`godot/tools/BakeProps.gd`), so nothing 3D ships
 - Printing animation: sweeping printhead, part appearing layer by layer, status
   light, live countdown bubble
 - Workshop expands to a physically bigger room, five tiers
@@ -66,6 +69,8 @@ slice does not reach:
 
 **Engineering**
 - Move off the 4.8 dev snapshot to 4.8-stable when it lands
+- More baked props as the room grows: the recipe file takes a new model and a
+  scale, and `--selftest` fails if one is catalogued without a sprite
 - An admin UI for `pf_config`, rather than editing the row directly
 - Push the Web export through the platform's CI
 - Extend the CI smoke test (`--selftest`) into a scripted play-through
