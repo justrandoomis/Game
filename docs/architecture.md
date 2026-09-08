@@ -131,6 +131,21 @@ without slicing anything.
 - Depth ordering is Godot's built-in Y-sort, which is exact here because screen
   Y is proportional to isometric depth in this projection.
 - Taps hit-test station rectangles front to back rather than using physics.
+- A prop is one texture however many times it is drawn, and props are drawn
+  inside the `_draw()` that was already running, so the furniture added no
+  nodes and no extra redraws.
+
+Measured, rather than assumed. A 6x6 workshop with all thirty-six stations
+bought, rendered on a software rasteriser at 390x844, 900 frames:
+
+```
+procedural furniture   20.9 / 22.1 ms per frame
+baked props            20.9 / 20.3 ms per frame
+```
+
+Within noise. Textured quads are not more expensive than the many small
+polygons they replaced — which is the whole reason this is affordable on a
+phone.
 
 ## Localisation
 
