@@ -70,7 +70,9 @@ slice does not reach:
 **Engineering**
 - Move off the 4.8 dev snapshot to 4.8-stable when it lands
 - More baked props as the room grows: the recipe file takes a new model and a
-  scale, and `--selftest` fails if one is catalogued without a sprite
+  scale, and `--selftest` proves the three things that can go wrong — a
+  catalogued prop with no sprite, an id the farm draws that is not in the
+  catalogue, and a prop baked that nothing draws
 - An admin UI for `pf_config`, rather than editing the row directly
 - Push the Web export through the platform's CI
 - Extend the CI smoke test (`--selftest`) into a scripted play-through

@@ -73,6 +73,18 @@ func unknown(ids: PackedStringArray) -> PackedStringArray:
 	return out
 
 
+## The other direction: props that were baked but nothing draws. Not a
+## failure — a prop is usually baked a moment before it is wired up — but the
+## boot check reports it, because an asset nobody draws is weight in the
+## download and a thing the next reader assumes is used somewhere.
+func unused(declared: PackedStringArray) -> PackedStringArray:
+	var out := PackedStringArray()
+	for id in _props.keys():
+		if not declared.has(String(id)):
+			out.append(String(id))
+	return out
+
+
 ## Catalogued props whose sprite will not load. Empty is the only good answer:
 ## anything listed here would silently draw nothing in the farm, so the boot
 ## check (Main.gd, `--selftest`) fails the build on it rather than shipping a

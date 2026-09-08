@@ -59,14 +59,16 @@ func _ready() -> void:
 ## it got back and exits. Used by CI to prove the client and server still agree
 ## without needing a display.
 func _run_selftest() -> void:
+	var declared_props := _declared_prop_ids(farm)
 	var missing_props := Props.missing()
-	var unknown_props := Props.unknown(_declared_prop_ids(farm))
+	var unknown_props := Props.unknown(declared_props)
 	var summary := {
 		"api": Net.base_url(),
 		"config_loaded": Config.is_loaded,
 		"props": Props.count(),
 		"props_missing": missing_props,
 		"props_unknown": unknown_props,
+		"props_unused": Props.unused(declared_props),
 		"state_loaded": GameState.ready_state,
 		"clock_synced": ServerClock.has_sync(),
 		"level": GameState.level(),

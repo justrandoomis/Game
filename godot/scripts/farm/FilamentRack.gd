@@ -39,7 +39,7 @@ var _spools: Array = []
 
 ## Declared for the boot check — see PrinterStation.prop_ids().
 func prop_ids() -> PackedStringArray:
-	return PackedStringArray([SHELF, WALL, "box"])
+	return PackedStringArray([SHELF, WALL])
 
 
 func _ready() -> void:
@@ -57,7 +57,7 @@ func contains_point(local_point: Vector2) -> bool:
 
 
 func _draw() -> void:
-	# The shelves run along the
+	# The rack is fixed to the right-hand wall, so its shelves run along the
 	# same axis that wall does. Half the shelf's own length is how far a spool
 	# at the end sits from the middle — measured from the model, not guessed.
 	var reach: Vector2 = Props.along(SHELF, "x") * 0.5
