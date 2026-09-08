@@ -32,7 +32,6 @@
 
 		{ "id": "shelf",         "src": "furniture/shelf_B_large",          "scale": "prop", "note": "filament rack — one texture, drawn three times" },
 		{ "id": "bench_cabinet", "src": "furniture/cabinet_medium",         "scale": "prop", "note": "maintenance bench base" },
-		{ "id": "dry_cabinet",   "src": "restaurant/fridge_A",              "scale": "prop", "note": "filament dry cabinet, appears once the workshop is big enough" },
 
 		{ "id": "crate",         "src": "restaurant/crate",                 "scale": "prop", "note": "parts bin under a table, and floor storage" },
 		{ "id": "box",           "src": "prototype/Box_A",                  "scale": "prop", "note": "packed print, ready to ship" },

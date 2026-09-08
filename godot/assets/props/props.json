@@ -61,18 +61,6 @@
 			"top": 30.48,
 			"w": 261
 		},
-		"dry_cabinet": {
-			"ax": 138.0,
-			"ay": 262.76,
-			"h": 335,
-			"px_per_unit": 44.0,
-			"src": "restaurant/fridge_A",
-			"sx": 2.0,
-			"sy": 2.5,
-			"sz": 2.24,
-			"top": 95.26,
-			"w": 276
-		},
 		"hatch_right": {
 			"ax": 97.0,
 			"ay": 232.63,
