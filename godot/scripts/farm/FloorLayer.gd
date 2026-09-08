@@ -87,6 +87,13 @@ func _draw() -> void:
 	]), Palette.shade(colors["edge"], 0.08))
 
 	# Station cells, checkered so the grid reads without hard gridlines.
+	#
+	# The floor stays drawn rather than baked, and that is a decision rather
+	# than an omission. The packs do have floor slabs, and one of them tiles
+	# this grid exactly — but they are grey paving, they read as a courtyard
+	# next to a workshop this warm, their seams compete with the station grid
+	# for the eye, and a texture cannot be recoloured into the four floors the
+	# four workshop tiers each get. Two diamonds and a palette can.
 	for row in rows:
 		for col in cols:
 			var fill: Color = colors["a"] if (row + col) % 2 == 0 else colors["b"]
