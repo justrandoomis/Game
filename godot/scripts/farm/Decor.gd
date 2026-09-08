@@ -67,9 +67,11 @@ func _draw() -> void:
 	_plant(Iso.cell_to_world(-1, cols), "plant_medium", 0.95)
 
 	# A workshop with room to walk about in earns a lamp — the one tall thing
-	# on the floor, so it goes on one of the six cells nothing can cover.
+	# on the floor, so it goes on one of the six cells nothing can cover, set
+	# back against the outer edge of that cell so the employees' route down the
+	# front walkway does not run through it.
 	if rows >= 3:
-		Props.draw(self, "lamp", Iso.cell_to_world(rows, 0))
+		Props.draw(self, "lamp", Iso.cell_to_world(rows, 0) + Vector2(-26.0, 13.0))
 
 
 func _plant(at: Vector2, prop: String, scale: float) -> void:

@@ -10,7 +10,8 @@ extends Node2D
 ## worked on.
 
 const CABINET := "bench_cabinet"
-const TAP_RECT := Rect2(-66.0, -88.0, 132.0, 124.0)
+## Covers the cabinet, the stool beside it and the tool board above it.
+const TAP_RECT := Rect2(-70.0, -96.0, 140.0, 132.0)
 
 var _busy: bool = false
 
