@@ -78,10 +78,31 @@ static func diamond_dashed(
 
 
 ## Soft contact shadow. One flattened diamond, cheaper than a blurred sprite.
+## Correct only for something with a square footprint; anything else wants
+## `footprint()` below.
 static func shadow(ci: CanvasItem, centre: Vector2, hw: float, alpha: float = 0.13) -> void:
 	var c := Palette.INK
 	c.a = alpha
 	diamond(ci, centre, hw, hw * 0.5, c)
+
+
+## Contact shadow shaped like the base of the thing standing on it.
+##
+## `along_x` and `along_z` are the screen vectors spanning the object's own
+## ground axes — Props.along(id, "x") and Props.along(id, "z"). A diamond is
+## only right when those two are equal; a bench twice as wide as it is deep
+## casts a parallelogram, and a diamond under it leaves a hard wedge of shadow
+## sticking out onto bare floor.
+static func footprint(
+	ci: CanvasItem, centre: Vector2, along_x: Vector2, along_z: Vector2, alpha: float = 0.12
+) -> void:
+	var c := Palette.INK
+	c.a = alpha
+	var a := along_x * 0.5
+	var b := along_z * 0.5
+	ci.draw_colored_polygon(PackedVector2Array([
+		centre - a - b, centre + a - b, centre + a + b, centre - a + b,
+	]), c)
 
 
 ## A vertical post: a thin box, for table legs and printer uprights.

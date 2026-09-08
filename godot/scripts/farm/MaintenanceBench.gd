@@ -10,6 +10,17 @@ extends Node2D
 ## worked on.
 
 const CABINET := "bench_cabinet"
+## Shadows are drawn a little inside the footprint, so the object overhangs its
+## own shadow rather than sitting on a hard outline of itself.
+const SHADOW_INSET := 0.9
+## Where the stool stands, relative to the bench.
+##
+## It has to stay on the bench's own cell AND clear of the station on the cell
+## to the lower right: that station's table is 130 px wide on a 148 px cell, so
+## it reaches 9 px back over the boundary. Anything further right than that is
+## buried by it — which is what the stool's old offset was, invisibly, until a
+## workshop grew big enough for that slot to be bought.
+const STOOL_AT := Vector2(-30.0, 16.0)
 ## Covers the cabinet, the stool beside it and the tool board above it.
 const TAP_RECT := Rect2(-70.0, -96.0, 140.0, 132.0)
 
@@ -37,7 +48,14 @@ func contains_point(local_point: Vector2) -> bool:
 
 
 func _draw() -> void:
-	IsoDraw.shadow(self, Vector2(0, 2.0), Props.half_width(CABINET) * 0.86, 0.11)
+	# The cabinet is twice as wide as it is deep, so its shadow is a
+	# parallelogram taken from the model's own ground axes. A square diamond
+	# here leaves a wedge of shadow lying on bare floor in front of it.
+	IsoDraw.footprint(
+		self, Vector2(0, 2.0),
+		Props.along(CABINET, "x") * SHADOW_INSET, Props.along(CABINET, "z") * SHADOW_INSET,
+		0.11
+	)
 
 	# Pegboard of tools on the wall the bench backs onto. Drawn first so the
 	# cabinet stands in front of it.
@@ -46,7 +64,7 @@ func _draw() -> void:
 	Props.draw(self, CABINET, Vector2.ZERO)
 
 	# A stool pulled up to the bench, and the bench top itself.
-	Props.draw(self, "stool", Vector2(34.0, 20.0), 0.8)
+	Props.draw(self, "stool", STOOL_AT, 0.8)
 	_draw_worktop()
 
 

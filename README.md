@@ -212,13 +212,13 @@ Sprites are baked at 2× and drawn with mipmaps, so they stay sharp when the
 player pinches in and quiet when a 6×6 farm is framed whole.
 
 The source models are excluded from every export preset, and the whole of the
-workshop's furniture is **19 textures, 200 KB** in the shipped pack. Verified
+workshop's furniture is **18 textures, 187 KB** in the shipped pack. Verified
 on a real `npm run game:export:web`:
 
 ```
 $ strings client/web/index.pck | grep -c kaykit      0
 $ strings client/web/index.pck | grep -c '\.gltf'     0
-$ du -h client/web/index.pck                         912K   (the whole game)
+$ du -h client/web/index.pck                         900K   (the whole game)
 ```
 
 No mesh, no material and no 3D renderer reaches the device.
@@ -232,8 +232,8 @@ camera are the code they always were.
 The 3D models are **KayKit** packs by [Kay
 Lousberg](https://www.kaylousberg.com) — *Furniture Bits*, *Restaurant Bits*
 and *Prototype Bits*, all **CC0**. Of the 269 models in the three packs, the
-**17** the workshop actually uses are vendored, unmodified, under
-`godot/assets/kaykit/`, each pack with its own `LICENSE.txt`. They bake to 19
+**16** the workshop actually uses are vendored, unmodified, under
+`godot/assets/kaykit/`, each pack with its own `LICENSE.txt`. They bake to 18
 sprites: the wall and the window are each baked twice, once per wall of the
 room, from the same model at a different yaw.
 

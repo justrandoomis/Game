@@ -120,7 +120,10 @@ func contains_point(local_point: Vector2) -> bool:
 func _draw() -> void:
 	# The sprite carries no shadow of its own, so the table is grounded the
 	# same way every other solid in the room is.
-	IsoDraw.shadow(self, Vector2(0, 2.0), Props.half_width(TABLE) * 0.86, 0.12)
+	IsoDraw.footprint(
+		self, Vector2(0, 2.0),
+		Props.along(TABLE, "x") * 0.9, Props.along(TABLE, "z") * 0.9, 0.12
+	)
 
 	# Parts bins tucked under the table, as in a real print farm. Drawn before
 	# the table so the table front hides their lower halves.

@@ -40,9 +40,8 @@
 
 		{ "id": "plant_small",   "src": "furniture/cactus_small_A",         "scale": "prop" },
 		{ "id": "plant_medium",  "src": "furniture/cactus_medium_A",        "scale": "prop" },
-		{ "id": "rug",           "src": "furniture/rug_rectangle_stripes_B","scale": "prop", "note": "warms the walkway" },
+		{ "id": "rug",           "src": "furniture/rug_rectangle_stripes_B","scale": "prop", "note": "drawn with a muted tone — see Decor.RUG_TONE" },
 		{ "id": "stool",         "src": "furniture/chair_stool_wood",       "scale": "prop" },
-		{ "id": "lamp",          "src": "furniture/lamp_standing",          "scale": "prop" },
 		{ "id": "picture",       "src": "furniture/pictureframe_medium",    "scale": "prop", "note": "on the wall, replacing the drawn posters" },
 		{ "id": "books",         "src": "furniture/book_set",               "scale": "prop", "note": "manuals on the rack" }
 	]
