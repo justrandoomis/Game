@@ -23,8 +23,9 @@ const PER_SHELF := 5
 ## it. Height of the bottom shelf, how far a spool sits above its plank, the
 ## biggest a full spool gets, and the gap left under the wall's top edge:
 const BOTTOM := 6.0
-const SPOOL_LIFT := 8.0
-const SPOOL_RADIUS_MAX := 8.5
+## A spool sprite is anchored at its base, so it wants to sit on the plank
+## rather than hover over it.
+const SPOOL_LIFT := 1.0
 const HEAD_ROOM := 4.0
 ## The spool model bakes about 40 px across; a rack spool wants a third of that
 ## when empty and a little over when full.
@@ -99,5 +100,6 @@ func _shelf_base(shelf: int) -> Vector2:
 ## with the top spool of the top shelf still under the wall's top edge.
 func _pitch() -> float:
 	var ceiling := Props.top(WALL) - HEAD_ROOM
-	var spool_reach := Props.top(SHELF) + SPOOL_LIFT + SPOOL_RADIUS_MAX
+	var spool_reach := Props.top(SHELF) + SPOOL_LIFT \
+		+ Props.top(SPOOL, SPOOL_SCALE_MIN + SPOOL_SCALE_GROW)
 	return maxf(18.0, (ceiling - spool_reach - BOTTOM) / float(SHELVES - 1))
