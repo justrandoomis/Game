@@ -148,6 +148,9 @@ func _boot() -> void:
 
 func _set_boot_state(message: String, show_retry: bool) -> void:
 	boot_overlay.visible = true
+	# The overlay hangs off the UI layer, so it has no parent to take a reading
+	# direction from and has to be told each time it is built.
+	UiKit.apply_direction(boot_overlay)
 	for child in boot_overlay.get_children():
 		child.queue_free()
 

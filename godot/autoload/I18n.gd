@@ -252,6 +252,10 @@ const STRINGS := {
 		"ready_at": "Back in",
 		"cancel_print": "Cancel this print?",
 		"cancel_print_hint": "Only the filament not yet printed comes back.",
+		"reconnecting": "Reconnecting…",
+		"farm_value": "Workshop value",
+		"record": "Record",
+		"of_five": "%s / 5",
 		"stations": "Stations", "grams": "g", "hours": "h",
 	},
 	"ar": {
@@ -489,6 +493,10 @@ const STRINGS := {
 		"ready_at": "يعود بعد",
 		"cancel_print": "إلغاء هذه الطبعة؟",
 		"cancel_print_hint": "يُسترجع الفيلامنت غير المطبوع فقط.",
+		"reconnecting": "إعادة الاتصال…",
+		"farm_value": "قيمة الورشة",
+		"record": "السجل",
+		"of_five": "%s / 5",
 		"stations": "المحطات", "grams": "غ", "hours": "س",
 	},
 	"ku": {
@@ -726,6 +734,10 @@ const STRINGS := {
 		"ready_at": "دەگەڕێتەوە لە",
 		"cancel_print": "ئەم چاپە هەڵبوەشێنرێتەوە؟",
 		"cancel_print_hint": "تەنها ئەو فیلامێنتەی چاپ نەکراوە دەگەڕێتەوە.",
+		"reconnecting": "پەیوەندی دووبارە…",
+		"farm_value": "بەهای وۆرکشۆپ",
+		"record": "تۆمار",
+		"of_five": "%s / 5",
 		"stations": "وێستگەکان", "grams": "گ", "hours": "کات",
 	},
 }

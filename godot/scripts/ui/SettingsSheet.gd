@@ -62,7 +62,16 @@ func _stats_card() -> Control:
 	var card := UiKit.card()
 	var column := UiKit.vbox(8)
 	card.add_child(column)
-	column.add_child(UiKit.label(I18n.t("workshop_value"), UiKit.FONT_SMALL, Palette.INK_SOFT, true))
+	# What the place is worth, then what it has done. The card used to be headed
+	# "Workshop Value" over six lifetime counters and no value at all; the
+	# figure comes from the server's own summary, because it is the economy's
+	# number and the economy is not the client's to work out.
+	var value_row := UiKit.hbox(8)
+	value_row.add_child(UiKit.label(I18n.t("farm_value"), UiKit.FONT_BODY, Palette.INK, true))
+	value_row.add_child(UiKit.spacer())
+	value_row.add_child(UiKit.coin(GameState.farm_value(), Palette.GREEN_DEEP, UiKit.FONT_BODY))
+	column.add_child(value_row)
+	column.add_child(UiKit.label(I18n.t("record"), UiKit.FONT_SMALL, Palette.INK_SOFT, true))
 
 	# What went well and what did not, side by side. A workshop summary that
 	# only counts the deliveries is a scoreboard; the late and failed counts

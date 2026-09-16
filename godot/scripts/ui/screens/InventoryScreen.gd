@@ -212,19 +212,25 @@ func _parts_section() -> Control:
 		var part_id := String(part.get("id", ""))
 		if GameState.level() < int(part.get("unlockLevel", 1)):
 			continue
+		# Parts nothing consumes are not for sale. One already in the drawer is
+		# still shown, so a stock bought before this stays accounted for.
+		var owned_count := int(owned.get(part_id, 0))
+		if not Config.part_is_used(part_id) and owned_count <= 0:
+			continue
 		var row := UiKit.hbox(8)
 		row.add_child(UiKit.icon("wrench", Palette.STEEL_DARK, 18.0))
 		var name_label := UiKit.label(I18n.name_of("part", part), UiKit.FONT_SMALL, Palette.INK)
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(name_label)
-		row.add_child(UiKit.pill("×%d" % int(owned.get(part_id, 0)), Palette.SAND, Palette.INK_SOFT))
+		row.add_child(UiKit.pill("×%d" % owned_count, Palette.SAND, Palette.INK_SOFT))
 
-		var price := int(part.get("price", 0))
-		var buy := UiKit.cost_button(price, "secondary", 88.0)
-		buy.disabled = GameState.coins() < price
-		buy.pressed.connect(func():
-			if await GameState.intent("buy_part", {"partId": part_id, "count": 1}):
-				Audio.play("purchase"))
-		row.add_child(buy)
+		if Config.part_is_used(part_id):
+			var price := int(part.get("price", 0))
+			var buy := UiKit.cost_button(price, "secondary", 88.0)
+			buy.disabled = GameState.coins() < price
+			buy.pressed.connect(func():
+				if await GameState.intent("buy_part", {"partId": part_id, "count": 1}):
+					Audio.play("purchase"))
+			row.add_child(buy)
 		column.add_child(row)
 	return card

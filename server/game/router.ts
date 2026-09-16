@@ -59,7 +59,7 @@ export function createGameRouter(): Router {
   router.get('/state', requirePlayer, async (req: PlayerRequest, res) => {
     try {
       const { state, report, created } = await loadFarm(req.player!.id);
-      res.json({ success: true, ...snapshot(state, report), created });
+      res.json({ success: true, ...snapshot(await loadConfig(), state, report), created });
     } catch (err) {
       res.status(500).json({ success: false, error: (err as Error).message });
     }
@@ -153,7 +153,10 @@ export function createGameRouter(): Router {
       });
       await store.recordPointClaim(req.player!.id, requested, coinCost, Date.now());
 
-      res.json({ success: true, points: requested, coinsSpent: coinCost, ...snapshot(fresh) });
+      res.json({
+        success: true, points: requested, coinsSpent: coinCost,
+        ...snapshot(await loadConfig(), fresh),
+      });
     } catch (err) {
       res.status(500).json({ success: false, error: (err as Error).message });
     }

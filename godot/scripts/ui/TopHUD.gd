@@ -17,6 +17,7 @@ var _xp_label: Label
 var _coins_label: Label
 var _rep_label: Label
 var _coin_anchor: Control
+var _offline_chip: Control
 ## How much of the top of the screen belongs to the device, not the game.
 var _safe_top: float = 0.0
 
@@ -36,6 +37,7 @@ func _ready() -> void:
 	custom_minimum_size = Vector2(0, 62.0 + _safe_top)
 	_build()
 	GameState.state_changed.connect(refresh)
+	GameState.online_changed.connect(_on_online_changed)
 	I18n.language_changed.connect(func(_lang): _apply_direction(); refresh())
 	refresh()
 
@@ -49,7 +51,8 @@ func _build() -> void:
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	margin.add_theme_constant_override("margin_left", 12)
 	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_top", 8)
+	# Clear of the notch: the HUD is pinned to the very top of the screen.
+	margin.add_theme_constant_override("margin_top", int(8.0 + _safe_top))
 	margin.add_theme_constant_override("margin_bottom", 6)
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(margin)
@@ -59,6 +62,7 @@ func _build() -> void:
 	margin.add_child(row)
 
 	row.add_child(_build_level())
+	row.add_child(_build_offline())
 	row.add_child(_build_coins())
 	row.add_child(_build_reputation())
 	row.add_child(_build_settings())
@@ -113,9 +117,29 @@ func _build_reputation() -> Control:
 	var row := UiKit.hbox(4)
 	panel.add_child(row)
 	row.add_child(UiKit.icon("star", Palette.YELLOW, 16.0))
-	_rep_label = UiKit.label("0.0", UiKit.FONT_SMALL, Palette.INK, true)
+	# "2.0" beside a star is a rating out of something the player is left to
+	# guess at. The scale is printed.
+	_rep_label = UiKit.label("0.0 / 5", UiKit.FONT_SMALL, Palette.INK, true)
 	_rep_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(_rep_label)
+	panel.tooltip_text = I18n.t("reputation")
+	return panel
+
+
+## A quiet chip that appears only when the workshop has stopped answering.
+## Everything on the farm is interpolated between snapshots, so without it a
+## dead connection looks exactly like a farm that is working.
+func _build_offline() -> Control:
+	var panel := PanelContainer.new()
+	var box := UiKit.flat(Palette.CORAL, 14.0)
+	box.content_margin_left = 10
+	box.content_margin_right = 10
+	box.content_margin_top = 6
+	box.content_margin_bottom = 6
+	panel.add_theme_stylebox_override("panel", box)
+	panel.add_child(UiKit.label(I18n.t("reconnecting"), UiKit.FONT_CAPTION, Palette.PAPER, true))
+	panel.visible = false
+	_offline_chip = panel
 	return panel
 
 
@@ -165,7 +189,14 @@ func refresh() -> void:
 	var max_rep: float = 100.0
 	if Config.is_loaded:
 		max_rep = float(Config.data.get("reputation", {}).get("max", 100.0))
-	_rep_label.text = "%.1f" % (GameState.reputation() / maxf(1.0, max_rep) * 5.0)
+	_rep_label.text = I18n.tf(
+		"of_five", ["%.1f" % (GameState.reputation() / maxf(1.0, max_rep) * 5.0)]
+	)
+
+
+func _on_online_changed(online: bool) -> void:
+	if _offline_chip != null and is_instance_valid(_offline_chip):
+		_offline_chip.visible = not online
 
 
 func _pop(node: Control) -> void:

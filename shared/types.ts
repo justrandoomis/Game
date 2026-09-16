@@ -207,9 +207,24 @@ export interface AwayReport {
 }
 
 /** The full payload the client renders from. */
+export interface FarmSummary {
+  level: number;
+  xp: number;
+  coins: number;
+  reputation: number;
+  printers: number;
+  ordersCompleted: number;
+  /** Coins plus what the machines and the filament are worth. */
+  farmValue: number;
+  failureRate: number;
+}
+
 export interface FarmSnapshot {
   state: FarmState;
   /** Server clock at the moment the snapshot was produced. */
   serverNow: number;
   report?: AwayReport;
+  /** Figures the server works out from the state, so the client never has to
+   *  re-derive the economy to print a number. */
+  summary?: FarmSummary;
 }

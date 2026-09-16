@@ -17,8 +17,11 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	custom_minimum_size = Vector2(0, 56)
 	_build()
+	UiKit.apply_direction(self)
 	GameState.state_changed.connect(refresh)
-	I18n.language_changed.connect(func(_lang): refresh())
+	I18n.language_changed.connect(func(_lang):
+		UiKit.apply_direction(self)
+		refresh())
 	refresh()
 
 

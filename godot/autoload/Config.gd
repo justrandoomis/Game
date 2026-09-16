@@ -111,6 +111,17 @@ func all_upgrades() -> Array:
 	return data.get("upgrades", [])
 
 
+## Whether any maintenance action actually consumes this part. Three of the
+## six in the catalogue — the belt set, the extruder gears, the maintenance
+## kit — are consumed by nothing, so offering to sell them is offering to take
+## the player's coins for an item with no use.
+func part_is_used(part_id: String) -> bool:
+	for action in maintenance_actions():
+		if String(action.get("partId", "")) == part_id:
+			return true
+	return false
+
+
 func all_parts() -> Array:
 	return data.get("maintenance", {}).get("parts", [])
 

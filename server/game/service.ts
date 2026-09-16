@@ -82,8 +82,13 @@ function hashUser(userId: string): number {
   return h >>> 0;
 }
 
-export function snapshot(state: FarmState, report?: AwayReport): FarmSnapshot {
-  return { state, serverNow: Date.now(), report };
+/**
+ * What the client renders from. The summary rides along because the figures in
+ * it — farm value above all — come out of the economy, and the client having
+ * to re-derive the economy to print a number is how the two drift apart.
+ */
+export function snapshot(config: GameConfig, state: FarmState, report?: AwayReport): FarmSnapshot {
+  return { state, serverNow: Date.now(), report, summary: summarize(config, state) };
 }
 
 export type IntentName =
@@ -201,5 +206,5 @@ export async function applyIntent(
   // an order becoming ready) is reflected before the snapshot goes out.
   resolveFarm(config, state, Date.now());
   await persist(store, config, userId, state);
-  return { ok: true, fx: result.fx, snapshot: snapshot(state) };
+  return { ok: true, fx: result.fx, snapshot: snapshot(config, state) };
 }

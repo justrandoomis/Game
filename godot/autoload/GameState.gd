@@ -15,12 +15,22 @@ signal away_report(report: Dictionary)
 signal intent_failed(intent: String, error: String)
 signal fx(kind: String, value: Variant, at: String)
 signal busy_changed(busy: bool)
+## Whether the last talk to the server worked. The farm interpolates progress
+## between snapshots, so a poll that quietly fails leaves every bar running to
+## a hundred per cent over a farm that has not moved — which looks like the
+## game working, right up until the player taps something.
+signal online_changed(online: bool)
 
 var state: Dictionary = {}
 var ready_state: bool = false
+## Figures the server derived from the state — farm value above all.
+var summary: Dictionary = {}
+var online: bool = true
 
 var _busy: bool = false
 var _pending: int = 0
+## Actions already on the wire, so the same one cannot be sent twice.
+var _in_flight: Dictionary = {}
 ## Slot ids that were empty last snapshot, so new arrivals can animate in.
 var _known_printers: Dictionary = {}
 var _last_level: int = 0
@@ -31,6 +41,13 @@ func _set_busy(value: bool) -> void:
 		return
 	_busy = value
 	busy_changed.emit(_busy)
+
+
+func _set_online(value: bool) -> void:
+	if online == value:
+		return
+	online = value
+	online_changed.emit(online)
 
 
 func is_busy() -> bool:
@@ -55,7 +72,10 @@ func refresh(show_report: bool = false) -> bool:
 	_set_busy(_pending > 0)
 
 	if not response.get("success", false):
+		_set_online(false)
 		return false
+	_set_online(true)
+	summary = response.get("summary", {})
 	_adopt(response.get("state", {}))
 	if show_report and response.has("report"):
 		var report: Dictionary = response["report"]
@@ -65,7 +85,22 @@ func refresh(show_report: bool = false) -> bool:
 
 
 ## Send one player action. The reply is the new snapshot.
+##
+## The same action sent twice while the first is still in the air is a double
+## purchase, a double accept, a second identical job. Every button in the game
+## stays live across the await — a request can take up to twenty seconds — so
+## the guard is here rather than on each of them.
 func intent(name: String, payload: Dictionary = {}) -> bool:
+	var key := "%s:%s" % [name, JSON.stringify(payload)]
+	if _in_flight.has(key):
+		return false
+	_in_flight[key] = true
+	var result := await _send_intent(name, payload)
+	_in_flight.erase(key)
+	return result
+
+
+func _send_intent(name: String, payload: Dictionary) -> bool:
 	_pending += 1
 	_set_busy(true)
 	var response := await Net.post_json("/api/game/intent", {"intent": name, "payload": payload})
@@ -74,12 +109,16 @@ func intent(name: String, payload: Dictionary = {}) -> bool:
 
 	if not response.get("success", false):
 		var error := String(response.get("error", "unknown"))
+		# A refusal is the server talking; only a missing reply is being offline.
+		_set_online(response.has("error"))
 		intent_failed.emit(name, error)
 		var hint = response.get("fx", null)
 		if typeof(hint) == TYPE_DICTIONARY:
 			fx.emit(String(hint.get("kind", "")), hint.get("value", null), String(hint.get("at", "")))
 		return false
 
+	_set_online(true)
+	summary = response.get("summary", {})
 	_adopt(response.get("state", {}))
 	var effect = response.get("fx", null)
 	if typeof(effect) == TYPE_DICTIONARY:
@@ -173,6 +212,13 @@ func demand() -> Dictionary:
 
 func parts() -> Dictionary:
 	return state.get("parts", {})
+
+
+## What the whole workshop is worth, as the server values it — coins plus the
+## machines plus the filament. Never worked out here: it is the economy's
+## number and the economy lives on the server.
+func farm_value() -> int:
+	return int(summary.get("farmValue", 0))
 
 
 func stats() -> Dictionary:

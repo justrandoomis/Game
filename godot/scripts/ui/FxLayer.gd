@@ -9,6 +9,8 @@ const TOAST_LIFE := 2.4
 const COIN_COUNT := 7
 
 var _toast_slot: VBoxContainer
+var _busy_bar: ColorRect
+var _busy_tween: Tween
 var hud_anchor: Callable = func(): return Vector2(180, 46)
 
 
@@ -26,9 +28,41 @@ func _ready() -> void:
 	add_child(_toast_slot)
 
 	Events.toast.connect(show_toast)
+	# Toasts and banners hang off the UI layer with no parent to inherit a
+	# direction from, so they have to be told — otherwise the whole game flips
+	# for Arabic except the messages.
+	UiKit.apply_direction(self)
+	I18n.language_changed.connect(func(_lang): UiKit.apply_direction(self))
 	Events.coins_earned.connect(burst_coins)
 	Events.level_up.connect(show_level_up)
 	GameState.intent_failed.connect(_on_intent_failed)
+	_build_busy_bar()
+	GameState.busy_changed.connect(_on_busy_changed)
+
+
+## A thin line across the top while the server is being talked to. Every action
+## in this game is a round trip the client cannot shortcut, and up to now
+## nothing on screen said one was happening — a tap on a slow connection looked
+## like a tap that had not registered.
+func _build_busy_bar() -> void:
+	_busy_bar = ColorRect.new()
+	_busy_bar.color = Palette.TEAL
+	_busy_bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_busy_bar.offset_bottom = 3.0
+	_busy_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_busy_bar.modulate.a = 0.0
+	add_child(_busy_bar)
+
+
+func _on_busy_changed(busy: bool) -> void:
+	if _busy_bar == null or not is_instance_valid(_busy_bar):
+		return
+	if _busy_tween != null and _busy_tween.is_valid():
+		_busy_tween.kill()
+	_busy_tween = create_tween()
+	# Fading in rather than appearing, so a request that answers immediately
+	# never flashes a bar at the player.
+	_busy_tween.tween_property(_busy_bar, "modulate:a", 1.0 if busy else 0.0, 0.25 if busy else 0.15)
 
 
 ## A short message. Errors are phrased as sentences, never as error codes.
