@@ -145,6 +145,16 @@ func health_thresholds() -> Dictionary:
 	return data.get("maintenance", {}).get("thresholds", {"good": 100, "service": 70, "warning": 40, "critical": 20})
 
 
+## How many orders may be in hand at once. Mirrors acceptedCapacity() on the
+## server — the rule the board is actually held to, and the one the player was
+## never told about until an accept was refused.
+func accepted_capacity(level: int) -> int:
+	var orders: Dictionary = data.get("orders", {})
+	return int(floor(
+		float(orders.get("maxAcceptedBase", 3)) + float(level) * float(orders.get("maxAcceptedPerLevel", 0.1))
+	))
+
+
 ## A machine's speed with everything fitted to it. Mirrors effectiveStats()
 ## on the server, which is what the print time is actually worked out from.
 func effective_speed(printer: Dictionary) -> float:

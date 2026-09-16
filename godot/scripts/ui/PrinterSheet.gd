@@ -101,6 +101,13 @@ func _status_section(printer: Dictionary) -> Control:
 		I18n.name_of("material", material), I18n.name_of("color", color),
 		I18n.number(int(job.get("grams", 0))), I18n.t("grams")
 	]))
+	# Which order this is for. A farm of sixteen machines all printing the same
+	# product gave no way to tell whose work was on which one.
+	var order := GameState.order_by_id(Val.field_text(job, "orderId"))
+	if not order.is_empty():
+		info.add_child(UiKit.caption(
+			I18n.tf("for_customer", [String(order.get("customerName", ""))]), Palette.SKY_DEEP
+		))
 	row.add_child(info)
 	column.add_child(row)
 
@@ -450,16 +457,38 @@ func _open_service(printer: Dictionary) -> void:
 		row.add_child(info)
 
 		var cost := int(action.get("cost", 0))
-		var buy := UiKit.cost_button(cost)
-		buy.disabled = GameState.coins() < cost or (part_id != "" and int(GameState.parts().get(part_id, 0)) < 1)
-		var action_id := String(action.get("id", ""))
-		buy.pressed.connect(func(): _send("service_printer", {"printerId": printer_id, "actionId": action_id}))
-		row.add_child(buy)
+		var short_of_part: bool = part_id != "" and int(GameState.parts().get(part_id, 0)) < 1
+		if short_of_part:
+			# The bench used to state the missing part and offer nothing to do
+			# about it — the player had to work out that spares are bought two
+			# screens away, in the Inventory.
+			var part_cost := _part_price(part_id)
+			var get_part := UiKit.cost_button(part_cost, "warm")
+			get_part.disabled = GameState.coins() < part_cost
+			get_part.pressed.connect(func():
+				if await GameState.intent("buy_part", {"partId": part_id, "count": 1}):
+					Audio.play("purchase")
+					_open_service(GameState.printer_by_id(printer_id)))
+			row.add_child(get_part)
+		else:
+			var buy := UiKit.cost_button(cost)
+			buy.disabled = GameState.coins() < cost
+			var action_id := String(action.get("id", ""))
+			buy.pressed.connect(func():
+				_send("service_printer", {"printerId": printer_id, "actionId": action_id}))
+			row.add_child(buy)
 		content().add_child(card)
 
 	var back := UiKit.button(I18n.t("close"), "ghost", true)
 	back.pressed.connect(_rebuild)
 	content().add_child(back)
+
+
+func _part_price(part_id: String) -> int:
+	for part in Config.all_parts():
+		if String(part.get("id", "")) == part_id:
+			return int(part.get("price", 0))
+	return 0
 
 
 func _part_name(part_id: String) -> String:

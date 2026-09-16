@@ -263,6 +263,10 @@ const STRINGS := {
 		"unit_hour": "h",
 		"unit_minute": "m",
 		"unit_second": "s",
+		"reject_cost": "Rejecting costs a little reputation",
+		"orders_capacity": "%d of %d orders in hand",
+		"hands_full": "Deliver something before taking more on",
+		"for_customer": "for %s",
 		"stations": "Stations", "grams": "g", "hours": "h",
 	},
 	"ar": {
@@ -511,6 +515,10 @@ const STRINGS := {
 		"unit_hour": "س",
 		"unit_minute": "د",
 		"unit_second": "ث",
+		"reject_cost": "الرفض يكلّف قليلًا من السمعة",
+		"orders_capacity": "%d من %d طلبات قيد التنفيذ",
+		"hands_full": "سلّم طلبًا قبل قبول المزيد",
+		"for_customer": "لـ %s",
 		"stations": "المحطات", "grams": "غ", "hours": "س",
 	},
 	"ku": {
@@ -759,6 +767,10 @@ const STRINGS := {
 		"unit_hour": "ک",
 		"unit_minute": "خ",
 		"unit_second": "چ",
+		"reject_cost": "ڕەتکردنەوە کەمێک ناوبانگت دەبات",
+		"orders_capacity": "%d لە %d داواکاری لە دەستدایە",
+		"hands_full": "شتێک بگەیەنە پێش ئەوەی زیاتر وەربگریت",
+		"for_customer": "بۆ %s",
 		"stations": "وێستگەکان", "grams": "گ", "hours": "کات",
 	},
 }

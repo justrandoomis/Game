@@ -143,7 +143,39 @@ func _refresh_badges() -> void:
 	).size()
 	_badges["orders"].visible = offers > 0 or ready > 0
 
-	var needs_attention: bool = GameState.printers().any(
-		func(p): return String(p.get("status", "")) == "failed"
-	)
-	_badges["farm"].visible = needs_attention
+	# The farm wants attention for a failed print or a machine due a service —
+	# the engine computes "needs service" and nothing ever showed it.
+	var service_at := 70.0
+	if Config.is_loaded:
+		service_at = float(Config.health_thresholds().get("service", 70))
+	_badges["farm"].visible = GameState.printers().any(func(p):
+		return String(p.get("status", "")) == "failed" \
+			or float(p.get("health", 100.0)) <= service_at)
+
+	# The shop has something to say when a product is out of stock and nothing
+	# is on its way; the inventory when a spool is nearly gone; upgrades when
+	# there is a slot free and the coins to fill it.
+	_badges["shop"].visible = not GameState.printers().is_empty() \
+		and GameState.store_stock().is_empty() and GameState.jobs().is_empty()
+	_badges["inventory"].visible = GameState.spools().any(func(s):
+		return float(s.get("grams", 0.0)) <= 0.10 * maxf(1.0, float(s.get("capacity", 1000.0))))
+	_badges["upgrades"].visible = Config.has_feature(GameState.level(), "upgrades") \
+		and _any_upgrade_affordable()
+
+
+## Whether any machine has a free slot and something it could take that the
+## player can pay for right now.
+func _any_upgrade_affordable() -> bool:
+	for printer in GameState.printers():
+		var model := Config.printer_model(String(printer.get("modelId", "")))
+		var installed: Array = printer.get("upgrades", [])
+		if installed.size() >= int(model.get("upgradeSlots", 0)):
+			continue
+		for upgrade in Config.all_upgrades():
+			if installed.has(String(upgrade.get("id", ""))):
+				continue
+			if GameState.level() < int(upgrade.get("unlockLevel", 1)):
+				continue
+			if GameState.coins() >= int(upgrade.get("price", 0)):
+				return true
+	return false

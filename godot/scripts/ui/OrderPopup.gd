@@ -161,6 +161,8 @@ func _build_footer() -> Control:
 			row.add_child(UiKit.spacer())
 			var reject := UiKit.button(I18n.t("reject"), "ghost")
 			reject.custom_minimum_size = Vector2(64, UiKit.TAP_MIN)
+			# Turning work away is not free, and nothing said so.
+			reject.tooltip_text = I18n.t("reject_cost")
 			reject.pressed.connect(func(): action.emit("reject", String(order.get("id", ""))))
 			row.add_child(reject)
 			var accept := UiKit.button(I18n.t("accept"), "primary")

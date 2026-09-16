@@ -109,11 +109,17 @@ func _summary(ready: Array, in_hand: int) -> Control:
 
 	var info := UiKit.vbox(1)
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Against the cap, because the cap is what refuses the next accept and the
+	# board never mentioned it existed.
+	var cap := Config.accepted_capacity(GameState.level()) if Config.is_loaded else in_hand
 	info.add_child(UiKit.label(
-		I18n.tn("orders_in_hand", in_hand), UiKit.FONT_BODY, Palette.INK, true
+		I18n.tf("orders_capacity", [in_hand, cap]), UiKit.FONT_BODY, Palette.INK, true
 	))
 	if ready.is_empty():
-		info.add_child(UiKit.caption(I18n.t("nothing_ready"), Palette.INK_FAINT))
+		info.add_child(UiKit.caption(
+			I18n.t("hands_full") if in_hand >= cap else I18n.t("nothing_ready"),
+			Palette.ORANGE_DEEP if in_hand >= cap else Palette.INK_FAINT
+		))
 		row.add_child(info)
 		return card
 
