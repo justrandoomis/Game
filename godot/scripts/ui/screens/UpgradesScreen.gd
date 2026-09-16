@@ -38,11 +38,12 @@ func rebuild() -> void:
 		child.queue_free()
 	UiKit.apply_direction(self)
 
+	# Locked, but not blank. This tab stays shut for the first fifteen levels —
+	# longer than any other — and an empty sky for that long is most of what a
+	# player ever sees of one of five permanent destinations. They get the
+	# catalogue instead, priced, with what each part does and when it arrives.
 	if not Config.has_feature(GameState.level(), "upgrades"):
-		_column.add_child(UiKit.empty_state(
-			"arrow_up", I18n.t("upgrades"),
-			I18n.tf("unlocks_at", [Config.feature_level("upgrades")])
-		))
+		_column.add_child(_locked_preview())
 		return
 
 	var printers := GameState.printers()
@@ -78,6 +79,39 @@ func rebuild() -> void:
 		))
 		for upgrade in by_category[category]:
 			_column.add_child(_upgrade_card(upgrade, installed, slots))
+
+
+## The board as it will be, with everything still out of reach.
+func _locked_preview() -> Control:
+	var column := UiKit.vbox(UiKit.GAP_MD)
+	var gate := Config.feature_level("upgrades")
+	var to_go: int = maxi(0, gate - GameState.level())
+
+	var card := UiKit.card(14, Palette.SAND)
+	var head := UiKit.vbox(6)
+	card.add_child(head)
+	var row := UiKit.hbox(10)
+	row.add_child(UiKit.icon("arrow_up", Palette.GREEN_DEEP, 24.0))
+	var info := UiKit.vbox(1)
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.add_child(UiKit.label(
+		I18n.tf("unlocks_at", [gate]), UiKit.FONT_BODY, Palette.INK, true
+	))
+	info.add_child(UiKit.caption(I18n.tn("levels_to_go", to_go)))
+	row.add_child(info)
+	head.add_child(row)
+	# The same XP bar the HUD shows, so "how far off" is a real answer.
+	var needed := Config.xp_for_level(GameState.level()) if Config.is_loaded else 0
+	head.add_child(UiKit.bar(
+		0.0 if needed <= 0 else clampf(float(GameState.xp()) / float(needed), 0.0, 1.0),
+		Palette.GREEN_DEEP, 7.0, Palette.LINE
+	))
+	column.add_child(card)
+
+	column.add_child(UiKit.section(I18n.t("what_you_will_fit")))
+	for upgrade in Config.all_upgrades():
+		column.add_child(_upgrade_card(upgrade, [], 0))
+	return column
 
 
 ## The machine the screen is currently buying for. Without it the upgrade list

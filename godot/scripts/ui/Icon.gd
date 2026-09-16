@@ -51,6 +51,7 @@ func _draw() -> void:
 		"plus": _plus(c, s)
 		"chevron": _chevron(c, s)
 		"alert": _alert(c, s)
+		"bell": _bell(c, s)
 		_: _coin(c, s)
 
 
@@ -177,6 +178,17 @@ func _chevron(c: Vector2, s: float) -> void:
 	draw_polyline(PackedVector2Array([
 		c + Vector2(-s * 0.14, -s * 0.26), c + Vector2(s * 0.16, 0), c + Vector2(-s * 0.14, s * 0.26),
 	]), color, s * 0.13, true)
+
+
+## A bell — sound, in the one place the game talks about it.
+func _bell(c: Vector2, s: float) -> void:
+	draw_colored_polygon(PackedVector2Array([
+		c + Vector2(-s * 0.34, s * 0.18), c + Vector2(-s * 0.26, -s * 0.06),
+		c + Vector2(-s * 0.20, -s * 0.30), c + Vector2(s * 0.20, -s * 0.30),
+		c + Vector2(s * 0.26, -s * 0.06), c + Vector2(s * 0.34, s * 0.18),
+	]), color)
+	draw_rect(Rect2(c.x - s * 0.06, c.y - s * 0.42, s * 0.12, s * 0.12), color)
+	draw_circle(c + Vector2(0, s * 0.30), s * 0.10, color)
 
 
 func _alert(c: Vector2, s: float) -> void:

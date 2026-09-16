@@ -55,13 +55,23 @@ func _build() -> void:
 	_panel.add_child(column)
 
 	# Grab handle — the affordance that says "you can drag this away".
+	# The grab bar is 5 px of paint inside a 22 px target — a drag affordance
+	# has to be grabbable, not just visible.
+	var grip := Control.new()
+	grip.custom_minimum_size = Vector2(72, 22)
+	grip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	grip.mouse_filter = Control.MOUSE_FILTER_STOP
+	grip.gui_input.connect(_on_handle_input)
+
 	var handle := Panel.new()
 	handle.custom_minimum_size = Vector2(44, 5)
 	handle.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	handle.add_theme_stylebox_override("panel", UiKit.flat(Palette.LINE, 3.0))
-	handle.mouse_filter = Control.MOUSE_FILTER_STOP
-	handle.gui_input.connect(_on_handle_input)
-	column.add_child(handle)
+	handle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	handle.set_anchors_preset(Control.PRESET_CENTER)
+	handle.position = Vector2(-22, -2.5)
+	grip.add_child(handle)
+	column.add_child(grip)
 
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -121,10 +131,13 @@ func add_header(title_text: String, subtitle: String = "") -> void:
 	row.add_child(column)
 
 	var close := Button.new()
-	close.custom_minimum_size = Vector2(36, 36)
+	# Square and shrunk to it, so a sheet with a two-line header does not
+	# stretch the close button into a lozenge down the side of the title.
+	close.custom_minimum_size = Vector2(UiKit.TAP_MIN, UiKit.TAP_MIN)
+	close.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	close.focus_mode = Control.FOCUS_NONE
-	close.add_theme_stylebox_override("normal", UiKit.flat(Palette.SAND, 18.0))
-	close.add_theme_stylebox_override("pressed", UiKit.flat(Palette.LINE, 18.0))
+	close.add_theme_stylebox_override("normal", UiKit.flat(Palette.SAND, UiKit.TAP_MIN * 0.5))
+	close.add_theme_stylebox_override("pressed", UiKit.flat(Palette.LINE, UiKit.TAP_MIN * 0.5))
 	var glyph := UiKit.icon("close", Palette.INK_SOFT, 16.0)
 	glyph.set_anchors_preset(Control.PRESET_FULL_RECT)
 	close.add_child(glyph)

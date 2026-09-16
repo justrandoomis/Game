@@ -18,7 +18,9 @@ func _sound_row() -> Control:
 	var card := UiKit.card()
 	var row := UiKit.hbox(10)
 	card.add_child(row)
-	row.add_child(UiKit.icon("bolt", Palette.YELLOW_DEEP, 20.0))
+	# A bell, not a lightning bolt: the row is about sound, and the bolt is the
+	# game's energy glyph everywhere else.
+	row.add_child(UiKit.icon("bell", Palette.YELLOW_DEEP, 20.0))
 	var label := UiKit.label(I18n.t("sound"), UiKit.FONT_BODY, Palette.INK)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(label)

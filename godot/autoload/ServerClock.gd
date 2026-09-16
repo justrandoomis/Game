@@ -74,10 +74,14 @@ func format_short(ms: int) -> String:
 	var total := int(maxi(0, ms) / 1000.0)
 	var hours := int(total / 3600.0)
 	var minutes := int(total / 60.0) % 60
+	# The unit letters are words too — "h" is "س" in Arabic — so they come out
+	# of the string table rather than out of this function.
 	if hours >= 24:
-		return "%dd %dh" % [int(hours / 24.0), hours % 24]
+		return "%d%s %d%s" % [
+			int(hours / 24.0), I18n.t("unit_day"), hours % 24, I18n.t("unit_hour")
+		]
 	if hours > 0:
-		return "%dh %dm" % [hours, minutes]
+		return "%d%s %d%s" % [hours, I18n.t("unit_hour"), minutes, I18n.t("unit_minute")]
 	if minutes > 0:
-		return "%dm" % minutes
-	return "%ds" % total
+		return "%d%s" % [minutes, I18n.t("unit_minute")]
+	return "%d%s" % [total, I18n.t("unit_second")]
