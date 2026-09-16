@@ -71,8 +71,11 @@ static func label(
 		# semibold without shipping a second font file.
 		node.add_theme_constant_override("outline_size", 1)
 		node.add_theme_color_override("font_outline_color", color)
-	# Clipping keeps one long product name from widening the entire screen.
+	# Clipping keeps one long product name from widening the entire screen, and
+	# an ellipsis is what says the name was trimmed rather than mis-rendered.
 	node.clip_text = clip
+	if clip:
+		node.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return node
 
@@ -124,17 +127,73 @@ static func button(text: String, kind: String = "primary", full_width: bool = fa
 	node.add_theme_stylebox_override("normal", flat(fill, RADIUS, border, border_width))
 	node.add_theme_stylebox_override("hover", flat(Palette.tint(fill, 0.06), RADIUS, border, border_width))
 	node.add_theme_stylebox_override("pressed", flat(Palette.shade(fill, 0.10), RADIUS, border, border_width))
-	node.add_theme_stylebox_override("disabled", flat(Palette.SAND, RADIUS))
+	# A disabled ghost button stays a ghost. Filling it with sand made the one
+	# action the player cannot take the most solid thing in the row.
+	node.add_theme_stylebox_override("disabled", flat(
+		Color(1, 1, 1, 0) if kind == "ghost" else Palette.SAND, RADIUS
+	))
 	node.add_theme_color_override("font_color", text_color)
 	node.add_theme_color_override("font_hover_color", text_color)
 	node.add_theme_color_override("font_pressed_color", text_color)
 	node.add_theme_color_override("font_disabled_color", Palette.INK_FAINT)
+	# A button never stretches to the height of the row it is in. Without this
+	# a 40 px price button beside a two-line description grows into a slab the
+	# size of the card, which is what the Upgrades board used to look like.
+	node.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	node.pressed.connect(func(): Audio.play("tap"))
 	return node
 
 
+## A button that costs coins: the figure with the coin beside it, so a price is
+## never a bare number the player has to guess the units of. Disabled, and
+## shown in the warning colour, when they cannot afford it.
+static func cost_button(
+	cost: int, kind: String = "secondary", width: float = 96.0
+) -> Button:
+	var node := button("", kind)
+	node.custom_minimum_size = Vector2(width, 40.0)
+	var affordable: bool = GameState.coins() >= cost
+	var row := hbox(GAP_XS)
+	row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var ink: Color = Palette.INK if affordable else Palette.INK_FAINT
+	row.add_child(icon("coin", Palette.YELLOW_DEEP if affordable else Palette.INK_FAINT, 15.0))
+	row.add_child(label(I18n.number(cost), FONT_SMALL, ink, true))
+	node.add_child(row)
+	return node
+
+
+## A price, read-only: the coin and the figure, for cards that quote a number
+## rather than offer to spend it. The coin is always a coin — colouring it the
+## same as the figure turns it into an unreadable dark disc whenever the figure
+## is ink — so only the number carries the meaning.
+static func coin(value: int, color: Color = Palette.INK, size: int = FONT_SMALL) -> Control:
+	var row := hbox(GAP_XS)
+	row.add_child(icon("coin", Palette.YELLOW_DEEP, float(size) + 2.0))
+	row.add_child(label(I18n.number(value), size, color, true))
+	return row
+
+
+## A board heading with the count of what is under it. Every screen uses the
+## same one, so Orders, Inventory and the Shop do not each invent a header.
+static func section(text: String, count: int = -1) -> Control:
+	var row := hbox(GAP_SM)
+	row.add_child(title(text, FONT_TITLE))
+	row.add_child(spacer())
+	if count >= 0:
+		row.add_child(pill(str(count), Palette.SAND, Palette.INK_SOFT))
+	return row
+
+
 ## A small status chip: order state, material, colour, urgency.
 static func pill(text: String, fill: Color, text_color: Color = Palette.PAPER) -> PanelContainer:
+	return chip(label(text, FONT_CAPTION, text_color, true), fill)
+
+
+## The same chip around anything — an icon next to a figure, a swatch next to a
+## name. A pill is this with a label in it.
+static func chip(content: Control, fill: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
 	var box := flat(fill, RADIUS_PILL)
 	box.content_margin_left = 10
@@ -142,8 +201,12 @@ static func pill(text: String, fill: Color, text_color: Color = Palette.PAPER) -
 	box.content_margin_top = 4
 	box.content_margin_bottom = 4
 	panel.add_theme_stylebox_override("panel", box)
-	panel.add_child(label(text, FONT_CAPTION, text_color, true))
+	panel.add_child(content)
 	panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	# A chip is the size of what is in it. Left to fill, it stretches to the
+	# height of whatever row it is in, and a fully rounded box that tall reads
+	# as a grey egg rather than as a chip.
+	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	return panel
 
 

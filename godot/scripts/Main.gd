@@ -217,6 +217,9 @@ func _on_navigate(target: String) -> void:
 		var sheet: Control = _open_sheet(ProduceSheetScript)
 		sheet.open(target.substr(8))
 		return
+	if target.begins_with("printer:"):
+		_open_sheet(PrinterSheetScript).open(target.substr(8))
+		return
 	if target == "buy_filament":
 		_open_sheet(BuyFilamentSheetScript).open()
 		return

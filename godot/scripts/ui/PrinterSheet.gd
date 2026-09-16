@@ -2,8 +2,11 @@ extends "res://scripts/ui/BottomSheet.gd"
 ## The printer sheet.
 ##
 ## Tapping a station opens this: what the machine is, what it is printing, how
-## healthy it is, and what is queued behind. Compact by design — a printer is
-## something you glance at and act on, not a settings page.
+## healthy it is, what is queued behind, and everything that can be done to it
+## — service it, repair it, move it to another station, sell it. Compact by
+## design — a printer is something you glance at and act on, not a settings
+## page — so the destructive and rare actions open in place of the sheet's body
+## rather than stacking a second modal on the first.
 
 var printer_id: String = ""
 var _progress_bar: ProgressBar
@@ -63,9 +66,14 @@ func _status_section(printer: Dictionary) -> Control:
 	column.add_child(head)
 
 	if job.is_empty():
-		column.add_child(UiKit.caption(
-			I18n.t("no_orders_hint") if status == "idle" else I18n.t(status)
-		))
+		# The pill above already names the state, so this line says what to do
+		# about it rather than saying it twice.
+		var hint := I18n.t("no_orders_hint")
+		if status == "maintenance":
+			hint = I18n.t("repair_hint")
+		elif status == "failed":
+			hint = I18n.t("clear")
+		column.add_child(UiKit.caption(hint))
 		return card
 
 	var product := Config.product(String(job.get("productId", "")))
@@ -144,10 +152,9 @@ func _health_section(printer: Dictionary) -> Control:
 	column.add_child(row)
 	column.add_child(UiKit.bar(health / 100.0, color, 8.0))
 
-	var model := Config.printer_model(String(printer.get("modelId", "")))
 	column.add_child(UiKit.caption("%.0f %s · %d %s" % [
 		float(printer.get("hours", 0.0)), I18n.t("hours"),
-		int(printer.get("prints", 0)), I18n.t("printers").to_lower()
+		int(printer.get("prints", 0)), I18n.t("prints_made")
 	], Palette.INK_FAINT))
 	return card
 
@@ -181,24 +188,52 @@ func _queue_section(printer: Dictionary) -> Control:
 		row.add_child(name_label)
 		row.add_child(UiKit.caption(ServerClock.format_short(int(job.get("durationMs", 0)))))
 
-		# Anything not already running can be pulled back out of the queue.
+		# Anything not already running can be moved up the queue or pulled back
+		# out of it. The head is printing, so it cannot be reshuffled underneath
+		# itself — the server refuses that, and so does this.
 		if i > 0 or String(job.get("status", "")) == "queued":
-			var remove := Button.new()
-			remove.custom_minimum_size = Vector2(30, 30)
-			remove.focus_mode = Control.FOCUS_NONE
-			remove.add_theme_stylebox_override("normal", UiKit.flat(Palette.SAND, 15.0))
-			var glyph := UiKit.icon("close", Palette.INK_FAINT, 13.0)
-			glyph.set_anchors_preset(Control.PRESET_FULL_RECT)
-			remove.add_child(glyph)
 			var job_id := String(job.get("id", ""))
-			remove.pressed.connect(func(): _send("cancel_job", {"jobId": job_id}))
-			row.add_child(remove)
+			if i > 1 or (i == 1 and String(jobs[0].get("status", "")) != "printing"):
+				row.add_child(_queue_button("arrow_up", I18n.t("move_up"),
+					func(): _promote(jobs, i)))
+			row.add_child(_queue_button("close", I18n.t("cancel"),
+				func(): _send("cancel_job", {"jobId": job_id})))
 		column.add_child(row)
 	return card
 
 
+func _queue_button(glyph_name: String, hint: String, on_press: Callable) -> Control:
+	var button := Button.new()
+	button.custom_minimum_size = Vector2(30, 30)
+	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	button.focus_mode = Control.FOCUS_NONE
+	button.tooltip_text = hint
+	button.add_theme_stylebox_override("normal", UiKit.flat(Palette.SAND, 15.0))
+	var glyph := UiKit.icon(glyph_name, Palette.INK_FAINT, 13.0)
+	glyph.set_anchors_preset(Control.PRESET_FULL_RECT)
+	button.add_child(glyph)
+	button.pressed.connect(on_press)
+	return button
+
+
+## Swap a queued job with the one in front of it. The whole order is sent,
+## because that is what the server validates against — it checks the list is a
+## permutation of the queue it already holds.
+func _promote(jobs: Array, index: int) -> void:
+	if index <= 0 or index >= jobs.size():
+		return
+	var ids := PackedStringArray()
+	for job in jobs:
+		ids.append(String(job.get("id", "")))
+	var moved := ids[index]
+	ids[index] = ids[index - 1]
+	ids[index - 1] = moved
+	_send("reorder_queue", {"printerId": printer_id, "jobIds": ids})
+
+
 func _actions_section(printer: Dictionary) -> Control:
 	var status := String(printer.get("status", "idle"))
+	var health := float(printer.get("health", 100.0))
 	var column := UiKit.vbox(8)
 
 	if status == "failed":
@@ -221,13 +256,127 @@ func _actions_section(printer: Dictionary) -> Control:
 	row.add_child(print_more)
 	column.add_child(row)
 
+	# A machine that has been run into the ground is past what a service kit
+	# fixes. A full repair is the expensive way out, so it only appears once
+	# there is something to repair.
+	var model := Config.printer_model(String(printer.get("modelId", "")))
+	var repair_cost := int(model.get("repairCost", 0))
+	if health < 99.0 and status != "printing" and status != "maintenance":
+		var repair := UiKit.button("%s · %s" % [
+			I18n.t("repair_cost"), I18n.number(repair_cost)
+		], "warm", true)
+		repair.disabled = GameState.coins() < repair_cost
+		repair.pressed.connect(func(): _send("repair_printer", {"printerId": printer_id}))
+		column.add_child(repair)
+		column.add_child(UiKit.caption(I18n.t("repair_hint"), Palette.INK_FAINT))
+
+	var minor := UiKit.hbox(8)
 	if Config.has_feature(GameState.level(), "upgrades"):
 		var upgrades := UiKit.button(I18n.t("upgrades"), "ghost", true)
 		upgrades.pressed.connect(func():
 			close_sheet()
 			Events.navigate.emit("upgrades"))
-		column.add_child(upgrades)
+		minor.add_child(upgrades)
+
+	var move := UiKit.button(I18n.t("move"), "ghost", true)
+	move.disabled = status == "printing"
+	move.pressed.connect(func(): _open_move(printer))
+	minor.add_child(move)
+
+	var sell := UiKit.button(I18n.t("sell"), "ghost", true)
+	sell.disabled = GameState.printers().size() <= 1 or not _queue_empty()
+	sell.pressed.connect(func(): _open_sell(printer))
+	minor.add_child(sell)
+	column.add_child(minor)
 	return column
+
+
+func _queue_empty() -> bool:
+	return GameState.queued_jobs(printer_id).is_empty()
+
+
+## Stations with nothing on them. A machine can only move to one of these, so
+## the list is the whole interaction — there is nothing to confirm afterwards.
+func _open_move(printer: Dictionary) -> void:
+	for child in content().get_children():
+		child.queue_free()
+	add_header(I18n.t("move"), I18n.t("move_hint"))
+
+	var tier := Config.workshop_tier(GameState.tier_index())
+	var cols := int(tier.get("cols", 2))
+	var free: Array = GameState.unlocked_slots().filter(func(slot):
+		return GameState.printer_at_slot(String(slot)).is_empty())
+
+	if free.is_empty():
+		content().add_child(UiKit.empty_state(
+			"printer", I18n.t("stations"), I18n.t("no_free_station")
+		))
+	else:
+		var grid := GridContainer.new()
+		grid.columns = 3
+		grid.add_theme_constant_override("h_separation", 8)
+		grid.add_theme_constant_override("v_separation", 8)
+		for slot in free:
+			var slot_id := String(slot)
+			var cell := Iso.parse_slot(slot_id)
+			var button := UiKit.button(
+				Iso.slot_label(cell.x, cell.y, cols) if cell.x >= 0 else slot_id, "secondary", true
+			)
+			button.custom_minimum_size = Vector2(0, 52)
+			button.pressed.connect(func():
+				_send("move_printer", {"printerId": printer_id, "slotId": slot_id}))
+			grid.add_child(button)
+		content().add_child(grid)
+
+	var back := UiKit.button(I18n.t("close"), "ghost", true)
+	back.pressed.connect(_rebuild)
+	content().add_child(back)
+	refit()
+
+
+## Selling is the one action here that cannot be undone, so it is the one that
+## asks twice — and quotes what the machine is worth first.
+func _open_sell(printer: Dictionary) -> void:
+	for child in content().get_children():
+		child.queue_free()
+	var model := Config.printer_model(String(printer.get("modelId", "")))
+	add_header("%s %s" % [
+		String(model.get("brand", "")), String(model.get("name", ""))
+	], I18n.t("sell"))
+
+	var card := UiKit.card(12, Palette.SAND)
+	var column := UiKit.vbox(8)
+	card.add_child(column)
+	var row := UiKit.hbox(8)
+	row.add_child(UiKit.label(I18n.t("resale_value"), UiKit.FONT_BODY, Palette.INK, true))
+	row.add_child(UiKit.spacer())
+	row.add_child(UiKit.coin(_resale(printer, model), Palette.GREEN_DEEP, UiKit.FONT_BODY))
+	column.add_child(row)
+	var hint := UiKit.caption(I18n.t("sell_hint"), Palette.INK_SOFT)
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	column.add_child(hint)
+	content().add_child(card)
+
+	var confirm := UiKit.button(I18n.t("confirm"), "danger", true)
+	confirm.pressed.connect(func(): _send("sell_printer", {"printerId": printer_id}))
+	content().add_child(confirm)
+
+	var back := UiKit.button(I18n.t("cancel"), "ghost", true)
+	back.pressed.connect(_rebuild)
+	content().add_child(back)
+	refit()
+
+
+## What the machine is worth, worn as it is. A quote only: the coins that
+## actually land are whatever the server works out when it processes the sale,
+## which is the same sum from the same catalogue — this is here so the player
+## is not asked to confirm a price they cannot see.
+func _resale(printer: Dictionary, model: Dictionary) -> int:
+	var health: float = clampf(float(printer.get("health", 100.0)), 0.0, 100.0)
+	return int(round(
+		float(model.get("price", 0)) * float(model.get("resaleFactor", 0.5))
+		* (0.45 + health / 100.0 * 0.55)
+	))
 
 
 ## Servicing swaps the sheet's body for the bench's action list, rather than
@@ -262,8 +411,7 @@ func _open_service(printer: Dictionary) -> void:
 		row.add_child(info)
 
 		var cost := int(action.get("cost", 0))
-		var buy := UiKit.button(I18n.number(cost), "secondary")
-		buy.custom_minimum_size = Vector2(88, 40)
+		var buy := UiKit.cost_button(cost)
 		buy.disabled = GameState.coins() < cost or (part_id != "" and int(GameState.parts().get(part_id, 0)) < 1)
 		var action_id := String(action.get("id", ""))
 		buy.pressed.connect(func(): _send("service_printer", {"printerId": printer_id, "actionId": action_id}))

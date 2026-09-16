@@ -42,16 +42,15 @@ func rebuild() -> void:
 	if _selected_printer == "" or GameState.printer_by_id(_selected_printer).is_empty():
 		_selected_printer = String(printers[0].get("id", ""))
 
-	_column.add_child(UiKit.title(I18n.t("printers")))
-	_column.add_child(_printer_picker(printers))
-	_column.add_child(UiKit.vspace(4.0))
-	_column.add_child(UiKit.title(I18n.t("upgrades")))
-
 	var printer := GameState.printer_by_id(_selected_printer)
 	var installed: Array = printer.get("upgrades", [])
 	var model := Config.printer_model(String(printer.get("modelId", "")))
 	var slots := int(model.get("upgradeSlots", 0))
-	_column.add_child(UiKit.caption("%d / %d %s" % [installed.size(), slots, I18n.t("install")]))
+
+	_column.add_child(UiKit.section(I18n.t("printers"), printers.size()))
+	_column.add_child(_printer_picker(printers))
+	_column.add_child(_machine_card(printer, model, installed, slots))
+	_column.add_child(UiKit.section(I18n.t("upgrades")))
 
 	# Grouped by category so the screen reads as improving a workshop rather
 	# than as one long shopping list.
@@ -63,9 +62,65 @@ func rebuild() -> void:
 		by_category[category].append(upgrade)
 
 	for category in by_category.keys():
-		_column.add_child(UiKit.label(category.capitalize(), UiKit.FONT_SMALL, Palette.INK_SOFT, true))
+		_column.add_child(UiKit.label(
+			I18n.t("category_" + category), UiKit.FONT_SMALL, Palette.INK_SOFT, true
+		))
 		for upgrade in by_category[category]:
 			_column.add_child(_upgrade_card(upgrade, installed, slots))
+
+
+## The machine the screen is currently buying for. Without it the upgrade list
+## is a shopping page with no idea what it is fitted to — and the two numbers
+## that decide every purchase below, how worn the machine is and how many slots
+## are left in it, are not on screen anywhere else.
+func _machine_card(
+	printer: Dictionary, model: Dictionary, installed: Array, slots: int
+) -> Control:
+	var health := float(printer.get("health", 100.0))
+	var thresholds := Config.health_thresholds()
+	var health_color := Palette.GREEN_DEEP
+	if health <= float(thresholds.get("critical", 20)):
+		health_color = Palette.CORAL
+	elif health <= float(thresholds.get("warning", 40)):
+		health_color = Palette.ORANGE
+	elif health <= float(thresholds.get("service", 70)):
+		health_color = Palette.YELLOW_DEEP
+
+	var card := UiKit.card(12)
+	var column := UiKit.vbox(8)
+	card.add_child(column)
+
+	var head := UiKit.hbox(10)
+	head.add_child(UiKit.icon("printer", Palette.SKY_DEEP, 24.0))
+	var info := UiKit.vbox(1)
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.add_child(UiKit.label("%s %s" % [
+		String(model.get("brand", "")), String(model.get("name", ""))
+	], UiKit.FONT_BODY, Palette.INK, true, true))
+	info.add_child(UiKit.caption("%.0f %s · %d %s" % [
+		float(printer.get("hours", 0.0)), I18n.t("hours"),
+		int(printer.get("prints", 0)), I18n.t("prints_made")
+	]))
+	head.add_child(info)
+	var status := String(printer.get("status", "idle"))
+	head.add_child(UiKit.pill(I18n.t(status), Palette.status(status)))
+	column.add_child(head)
+
+	var health_row := UiKit.hbox(8)
+	health_row.add_child(UiKit.caption(I18n.t("health"), Palette.INK_FAINT))
+	health_row.add_child(UiKit.spacer())
+	health_row.add_child(UiKit.label("%d%%" % int(health), UiKit.FONT_SMALL, health_color, true))
+	column.add_child(health_row)
+	column.add_child(UiKit.bar(health / 100.0, health_color, 7.0))
+
+	var slots_row := UiKit.hbox(8)
+	slots_row.add_child(UiKit.caption(
+		I18n.tf("slots_used", [installed.size(), slots]),
+		Palette.CORAL_DEEP if installed.size() >= slots else Palette.INK_SOFT
+	))
+	slots_row.add_child(UiKit.spacer())
+	column.add_child(slots_row)
+	return card
 
 
 ## A horizontal strip of the fleet — the current selection is highlighted.
@@ -82,7 +137,9 @@ func _printer_picker(printers: Array) -> Control:
 		var active: bool = printer_id == _selected_printer
 
 		var button := Button.new()
-		button.custom_minimum_size = Vector2(112, 64)
+		# Narrow enough that a fourth tile shows at the edge of a 390 px phone,
+		# which is what tells the player the fleet keeps going past the screen.
+		button.custom_minimum_size = Vector2(96, 64)
 		button.focus_mode = Control.FOCUS_NONE
 		button.add_theme_stylebox_override("normal", UiKit.flat(
 			Palette.SKY_SOFT if active else Palette.PAPER, 14.0,
@@ -112,12 +169,15 @@ func _upgrade_card(upgrade: Dictionary, installed: Array, slots: int) -> Control
 	var upgrade_id := String(upgrade.get("id", ""))
 	var is_installed: bool = installed.has(upgrade_id)
 	var locked: bool = GameState.level() < int(upgrade.get("unlockLevel", 1))
+	var full: bool = installed.size() >= slots
 
-	var card := UiKit.card(12, Palette.PAPER if not is_installed else Palette.SKY_SOFT)
+	var card := UiKit.card(12, Palette.SKY_SOFT if is_installed else Palette.PAPER)
+	var column := UiKit.vbox(8)
+	card.add_child(column)
+
 	var row := UiKit.hbox(10)
-	card.add_child(row)
-
-	row.add_child(UiKit.icon("gear", Palette.SKY_DEEP if not is_installed else Palette.TEAL_DEEP, 24.0))
+	column.add_child(row)
+	row.add_child(UiKit.icon("gear", Palette.TEAL_DEEP if is_installed else Palette.SKY_DEEP, 22.0))
 	var info := UiKit.vbox(2)
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.add_child(UiKit.label(String(upgrade.get("name", "")), UiKit.FONT_BODY, Palette.INK, true))
@@ -128,18 +188,66 @@ func _upgrade_card(upgrade: Dictionary, installed: Array, slots: int) -> Control
 
 	if is_installed:
 		row.add_child(UiKit.pill(I18n.t("installed"), Palette.TEAL))
-		return card
+	elif locked:
+		row.add_child(UiKit.pill(
+			I18n.tf("unlocks_at", [int(upgrade.get("unlockLevel", 1))]), Palette.SAND, Palette.INK_SOFT
+		))
+	else:
+		var price := int(upgrade.get("price", 0))
+		var buy := UiKit.cost_button(price)
+		buy.disabled = GameState.coins() < price or full
+		buy.pressed.connect(func():
+			if await GameState.intent("buy_upgrade", {
+				"printerId": _selected_printer, "upgradeId": upgrade_id
+			}):
+				Audio.play("purchase")
+				Events.toast.emit(I18n.t("installed"), "success"))
+		row.add_child(buy)
 
-	var price := int(upgrade.get("price", 0))
-	var buy := UiKit.button(
-		I18n.tf("unlocks_at", [int(upgrade.get("unlockLevel", 1))]) if locked else I18n.number(price),
-		"secondary"
-	)
-	buy.custom_minimum_size = Vector2(92, 40)
-	buy.disabled = locked or GameState.coins() < price or installed.size() >= slots
-	buy.pressed.connect(func():
-		if await GameState.intent("buy_upgrade", {"printerId": _selected_printer, "upgradeId": upgrade_id}):
-			Audio.play("purchase")
-			Events.toast.emit(I18n.t("installed"), "success"))
-	row.add_child(buy)
+	# What the upgrade actually does, from its own effects. A description says
+	# a nozzle "survives abrasive filaments"; this says by how much, which is
+	# what a second machine's worth of coins is being weighed against.
+	var effects := _effect_chips(upgrade.get("effects", {}))
+	if not effects.is_empty():
+		var chips := UiKit.hbox(6)
+		for chip in effects:
+			chips.add_child(chip)
+		chips.add_child(UiKit.spacer())
+		column.add_child(chips)
+
+	if not is_installed and not locked and full:
+		column.add_child(UiKit.caption(I18n.t("no_slots_left"), Palette.CORAL_DEEP))
 	return card
+
+
+## The effects table turned into chips. Most are proportions where less is
+## better — fewer failures, less wear, less waste, less time — so the sign is
+## read against what the field means rather than against zero.
+const EFFECTS := {
+	"failure": {"key": "effect_failure", "percent": true, "less_is_better": true},
+	"healthDecay": {"key": "effect_wear", "percent": true, "less_is_better": true},
+	"materialWaste": {"key": "effect_waste", "percent": true, "less_is_better": true},
+	"speed": {"key": "effect_speed", "percent": true, "less_is_better": true},
+	"quality": {"key": "effect_quality", "percent": false, "less_is_better": false},
+	"queueCapacity": {"key": "effect_queue", "percent": false, "less_is_better": false},
+}
+
+
+func _effect_chips(effects: Dictionary) -> Array:
+	var out: Array = []
+	for field in EFFECTS.keys():
+		if not effects.has(field):
+			continue
+		var value := float(effects[field])
+		if is_zero_approx(value):
+			continue
+		var spec: Dictionary = EFFECTS[field]
+		var good: bool = (value < 0.0) == bool(spec["less_is_better"])
+		var color: Color = Palette.GREEN_DEEP if good else Palette.ORANGE_DEEP
+		var text := (
+			"%+d%% %s" % [int(round(value * 100.0)), I18n.t(String(spec["key"]))]
+			if bool(spec["percent"])
+			else "%+d %s" % [int(round(value)), I18n.t(String(spec["key"]))]
+		)
+		out.append(UiKit.pill(text, Color(color.r, color.g, color.b, 0.14), color))
+	return out

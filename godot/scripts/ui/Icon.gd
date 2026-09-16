@@ -39,6 +39,8 @@ func _draw() -> void:
 		"store": _store(c, s)
 		"box": _box(c, s)
 		"arrow_up": _arrow_up(c, s)
+		"trend_up": _trend(c, s, -1.0)
+		"trend_down": _trend(c, s, 1.0)
 		"spool": _spool(c, s)
 		"printer": _printer(c, s)
 		"wrench": _wrench(c, s)
@@ -110,6 +112,16 @@ func _arrow_up(c: Vector2, s: float) -> void:
 		c + Vector2(0, -s * 0.44), c + Vector2(s * 0.40, s * 0.02), c + Vector2(-s * 0.40, s * 0.02),
 	]), color)
 	draw_rect(Rect2(c.x - s * 0.15, c.y, s * 0.30, s * 0.42), color)
+
+
+## A solid triangle, point up or down: which way a number is moving. Used by
+## the shop's demand chip, where an arrow is read faster than a sign is.
+func _trend(c: Vector2, s: float, dir: float) -> void:
+	draw_colored_polygon(PackedVector2Array([
+		c + Vector2(0, s * 0.34 * dir),
+		c + Vector2(s * 0.32, -s * 0.26 * dir),
+		c + Vector2(-s * 0.32, -s * 0.26 * dir),
+	]), color)
 
 
 func _spool(c: Vector2, s: float) -> void:

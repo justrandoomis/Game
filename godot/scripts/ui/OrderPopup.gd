@@ -78,8 +78,12 @@ func _build_body(compact: bool) -> Control:
 	var name_label := UiKit.label(title_text, UiKit.FONT_BODY, Palette.INK, true, true)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(name_label)
+	# An order past its deadline says so once, on the countdown chip in the
+	# footer beside the button — the card already carries a red edge, and a
+	# second red word two centimetres above the first is noise, not emphasis.
 	if _urgency() == "critical" or _urgency() == "urgent":
-		head.add_child(UiKit.pill(I18n.t("urgent"), _deadline_color()))
+		if not _overdue():
+			head.add_child(UiKit.pill(I18n.t("urgent"), _deadline_color()))
 	column.add_child(head)
 
 	# Material, colour and customer.
@@ -181,6 +185,10 @@ func _build_footer() -> Control:
 			return column
 		"ready":
 			row.add_child(UiKit.pill(I18n.t("ready"), Palette.GREEN_DEEP))
+			# A finished order is drawn compact on the board, so its reward is
+			# not in the stats block above — and the reward is the whole reason
+			# to press the button beside it.
+			row.add_child(UiKit.coin(int(order.get("reward", 0)), Palette.GREEN_DEEP))
 			row.add_child(UiKit.spacer())
 			var deliver := UiKit.button(I18n.t("deliver"), "warm")
 			deliver.custom_minimum_size = Vector2(104, 40)
@@ -199,6 +207,12 @@ func _deadline_chip() -> Control:
 		text = I18n.t("overdue")
 	_deadline_pill = UiKit.pill(text, _deadline_color())
 	return _deadline_pill
+
+
+## Past its delivery window. Still deliverable — it pays the reduced rate.
+func _overdue() -> bool:
+	var due := Val.field_int(order, "dueAt", 0)
+	return due > 0 and ServerClock.remaining(due) <= 0
 
 
 ## Mirrors deadlineBand() on the server: normal, soon, urgent, critical.
