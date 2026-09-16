@@ -129,7 +129,7 @@ func _printer_card(model: Dictionary, unlock_level: int) -> Control:
 	var chips := UiKit.hbox(4)
 	for material_id in materials:
 		var material := Config.material(String(material_id))
-		chips.add_child(UiKit.pill(String(material.get("name", "")), Palette.SAND, Palette.INK_SOFT))
+		chips.add_child(UiKit.pill(I18n.name_of("material", material), Palette.SAND, Palette.INK_SOFT))
 	column.add_child(chips)
 
 	var price := int(model.get("price", 0))
@@ -161,7 +161,7 @@ func _maybe_add_expansion() -> void:
 	card.add_child(column)
 	column.add_child(UiKit.label(I18n.t("expand_workshop"), UiKit.FONT_BODY, Palette.INK, true))
 	column.add_child(UiKit.caption("%s → %s · %d %s" % [
-		String(tier.get("name", "")), String(next_tier.get("name", "")),
+		I18n.name_of("tier", tier), I18n.name_of("tier", next_tier),
 		int(next_tier.get("slots", 0)), I18n.t("stations")
 	]))
 	var cost := int(next_tier.get("cost", 0))

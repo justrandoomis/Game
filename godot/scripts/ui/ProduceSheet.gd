@@ -32,7 +32,7 @@ func _rebuild() -> void:
 		child.queue_free()
 
 	var product := Config.product(product_id)
-	add_header(I18n.t("print_more"), String(product.get("name", "")))
+	add_header(I18n.t("print_more"), I18n.name_of("product", product))
 
 	content().add_child(_printer_picker(product))
 	content().add_child(_material_picker(product))
@@ -104,7 +104,7 @@ func _material_picker(product: Dictionary) -> Control:
 		if GameState.level() < int(material.get("unlockLevel", 1)):
 			continue
 		var active: bool = String(material_id) == _material_id
-		var button := UiKit.button(String(material.get("name", "")), "secondary")
+		var button := UiKit.button(I18n.name_of("material", material), "secondary")
 		button.custom_minimum_size = Vector2(76, 40)
 		if active:
 			button.add_theme_stylebox_override("normal", UiKit.flat(Palette.TEAL, UiKit.RADIUS))

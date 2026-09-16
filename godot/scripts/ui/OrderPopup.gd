@@ -69,7 +69,7 @@ func _build_body(compact: bool) -> Control:
 
 	var product := Config.product(String(order.get("productId", "")))
 	var qty := int(order.get("qty", 1))
-	var title_text: String = String(product.get("name", "Part"))
+	var title_text: String = I18n.name_of("product", product)
 	if qty > 1:
 		title_text += " ×%d" % qty
 
@@ -92,7 +92,7 @@ func _build_body(compact: bool) -> Control:
 	var meta := UiKit.hbox(6)
 	meta.add_child(_swatch(Palette.filament(String(order.get("colorId", "green")))))
 	meta.add_child(UiKit.caption("%s · %s" % [
-		String(material.get("name", "PLA")), String(color.get("name", ""))
+		I18n.name_of("material", material), I18n.name_of("color", color)
 	]))
 	meta.add_child(UiKit.spacer())
 	# The customer's name is the first thing to give up room if space is tight.

@@ -180,8 +180,8 @@ func _upgrade_card(upgrade: Dictionary, installed: Array, slots: int) -> Control
 	row.add_child(UiKit.icon("gear", Palette.TEAL_DEEP if is_installed else Palette.SKY_DEEP, 22.0))
 	var info := UiKit.vbox(2)
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info.add_child(UiKit.label(String(upgrade.get("name", "")), UiKit.FONT_BODY, Palette.INK, true))
-	var description := UiKit.caption(String(upgrade.get("description", "")))
+	info.add_child(UiKit.label(I18n.name_of("upgrade", upgrade), UiKit.FONT_BODY, Palette.INK, true))
+	var description := UiKit.caption(I18n.desc_of("upgrade", upgrade))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(description)
 	row.add_child(info)

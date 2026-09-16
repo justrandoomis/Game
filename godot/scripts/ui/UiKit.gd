@@ -26,6 +26,15 @@ const GAP_SM := 8
 const GAP_MD := 12
 const GAP_LG := 16
 
+## Anything made only of digits, separators and signs. Arabic and Kurdish
+## write numbers left to right exactly as English does, but a string like
+## "+4" or "×12" contains no letter for the shaper to take a direction from,
+## so it inherits the paragraph's — and comes out as "4+" and "12×" the moment
+## the device locale is right to left. Labels matching this are pinned LTR.
+const NUMERIC := r"^[\d\s.,:;%+\-−×x/()]+$"
+
+static var _numeric_re: RegEx
+
 
 static func flat(
 	color: Color, radius: float = RADIUS, border: Color = Color.TRANSPARENT, border_width: int = 0
@@ -71,6 +80,8 @@ static func label(
 		# semibold without shipping a second font file.
 		node.add_theme_constant_override("outline_size", 1)
 		node.add_theme_color_override("font_outline_color", color)
+	if _is_numeric(text):
+		node.text_direction = Control.TEXT_DIRECTION_LTR
 	# Clipping keeps one long product name from widening the entire screen, and
 	# an ellipsis is what says the name was trimmed rather than mis-rendered.
 	node.clip_text = clip
@@ -78,6 +89,14 @@ static func label(
 		node.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return node
+
+
+static func _is_numeric(text: String) -> bool:
+	if text.is_empty():
+		return false
+	if _numeric_re == null:
+		_numeric_re = RegEx.create_from_string(NUMERIC)
+	return _numeric_re.search(text) != null
 
 
 static func title(text: String, font_size: int = FONT_TITLE) -> Label:

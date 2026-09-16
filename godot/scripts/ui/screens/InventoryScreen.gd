@@ -92,8 +92,8 @@ func _filament_summary(spools: Array) -> Control:
 		if not by_material.has(material_id):
 			continue
 		var tint := Config.material_tint(material_id)
-		wrap.add_child(UiKit.pill("%s %s%s" % [
-			String(material.get("name", material_id)),
+		wrap.add_child(UiKit.pill("%s %s %s" % [
+			I18n.name_of("material", material),
 			I18n.number(int(by_material[material_id])), I18n.t("grams")
 		], Color(tint.r, tint.g, tint.b, 0.18), Palette.shade(tint, 0.20)))
 	if wrap.get_child_count() > 0:
@@ -141,7 +141,7 @@ func _products_section() -> Control:
 		frame.add_child(ProductThumb.new(String(product.get("icon", "dino")), Palette.TEAL))
 		row.add_child(frame)
 		var name_label := UiKit.label(
-			String(product.get("name", "")), UiKit.FONT_SMALL, Palette.INK, false, true
+			I18n.name_of("product", product), UiKit.FONT_SMALL, Palette.INK, false, true
 		)
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(name_label)
@@ -187,8 +187,8 @@ func _spool_tile(spool: Dictionary) -> Control:
 	head.add_child(disc)
 	var info := UiKit.vbox(1)
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info.add_child(UiKit.label(String(material.get("name", "")), UiKit.FONT_BODY, Palette.INK, true))
-	info.add_child(UiKit.caption(String(color_entry.get("name", ""))))
+	info.add_child(UiKit.label(I18n.name_of("material", material), UiKit.FONT_BODY, Palette.INK, true))
+	info.add_child(UiKit.caption(I18n.name_of("color", color_entry)))
 	head.add_child(info)
 	column.add_child(head)
 
@@ -214,7 +214,7 @@ func _parts_section() -> Control:
 			continue
 		var row := UiKit.hbox(8)
 		row.add_child(UiKit.icon("wrench", Palette.STEEL_DARK, 18.0))
-		var name_label := UiKit.label(String(part.get("name", "")), UiKit.FONT_SMALL, Palette.INK)
+		var name_label := UiKit.label(I18n.name_of("part", part), UiKit.FONT_SMALL, Palette.INK)
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(name_label)
 		row.add_child(UiKit.pill("×%d" % int(owned.get(part_id, 0)), Palette.SAND, Palette.INK_SOFT))

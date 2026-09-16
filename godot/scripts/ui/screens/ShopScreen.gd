@@ -104,7 +104,7 @@ func _locked_hint() -> Control:
 	card.add_child(row)
 	row.add_child(UiKit.icon("store", Palette.INK_FAINT, 20.0))
 	var name_label := UiKit.label(
-		String(best.get("name", "")), UiKit.FONT_SMALL, Palette.INK_FAINT
+		I18n.name_of("product", best), UiKit.FONT_SMALL, Palette.INK_FAINT
 	)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(name_label)
@@ -134,7 +134,7 @@ func _product_card(product: Dictionary, stock: Dictionary, demand: Dictionary) -
 	var info := UiKit.vbox(1)
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.add_child(UiKit.label(
-		String(product.get("name", "")), UiKit.FONT_BODY, Palette.INK, true, true
+		I18n.name_of("product", product), UiKit.FONT_BODY, Palette.INK, true, true
 	))
 	info.add_child(UiKit.caption("%s %d · %s · %d %s" % [
 		I18n.t("stock"), int(stock.get(product_id, 0)),

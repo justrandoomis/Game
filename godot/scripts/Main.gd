@@ -223,6 +223,9 @@ func _on_navigate(target: String) -> void:
 	if target == "buy_filament":
 		_open_sheet(BuyFilamentSheetScript).open()
 		return
+	if target == "settings":
+		_open_settings()
+		return
 	_show_screen(target)
 
 

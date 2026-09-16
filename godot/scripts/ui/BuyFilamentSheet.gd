@@ -69,7 +69,7 @@ func _material_picker() -> Control:
 		inner.alignment = BoxContainer.ALIGNMENT_CENTER
 		inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		button.add_child(inner)
-		var name_label := UiKit.label(String(material.get("name", "")), UiKit.FONT_SMALL,
+		var name_label := UiKit.label(I18n.name_of("material", material), UiKit.FONT_SMALL,
 			Palette.INK if not locked else Palette.INK_FAINT, true)
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		inner.add_child(name_label)
@@ -100,7 +100,7 @@ func _color_picker() -> Control:
 	var head := UiKit.hbox(6)
 	head.add_child(UiKit.label(I18n.t("color"), UiKit.FONT_SMALL, Palette.INK_SOFT, true))
 	head.add_child(UiKit.spacer())
-	head.add_child(UiKit.caption(String(Config.color(_color_id).get("name", ""))))
+	head.add_child(UiKit.caption(I18n.name_of("color", Config.color(_color_id))))
 	column.add_child(head)
 
 	var wrap := HFlowContainer.new()
@@ -112,7 +112,7 @@ func _color_picker() -> Control:
 		var button := Button.new()
 		button.custom_minimum_size = Vector2(40, 40)
 		button.focus_mode = Control.FOCUS_NONE
-		button.tooltip_text = String(entry.get("name", color_id))
+		button.tooltip_text = I18n.name_of("color", entry)
 		button.add_theme_stylebox_override("normal", UiKit.flat(
 			Palette.filament(color_id), 20.0,
 			Palette.SKY_DEEP if active else Palette.LINE, 3 if active else 1
@@ -170,7 +170,7 @@ func _summary() -> Control:
 	var info := UiKit.vbox(2)
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.add_child(UiKit.label("%s · %s" % [
-		String(material.get("name", "")), String(Config.color(_color_id).get("name", ""))
+		I18n.name_of("material", material), I18n.name_of("color", Config.color(_color_id))
 	], UiKit.FONT_BODY, Palette.INK, true))
 	info.add_child(UiKit.caption("%d %s · %s %d %s" % [
 		int(material.get("spoolSize", 1000)), I18n.t("grams"),

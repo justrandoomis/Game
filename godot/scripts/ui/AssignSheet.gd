@@ -33,7 +33,7 @@ func _rebuild() -> void:
 		return
 
 	var product := Config.product(String(order.get("productId", "")))
-	add_header(I18n.t("assign"), "%s ×%d" % [String(product.get("name", "")), int(order.get("qty", 1))])
+	add_header(I18n.t("assign"), "%s ×%d" % [I18n.name_of("product", product), int(order.get("qty", 1))])
 
 	var eligible := _eligible_printers(order)
 	if eligible.is_empty():

@@ -64,22 +64,37 @@ func _stats_card() -> Control:
 	card.add_child(column)
 	column.add_child(UiKit.label(I18n.t("workshop_value"), UiKit.FONT_SMALL, Palette.INK_SOFT, true))
 
+	# What went well and what did not, side by side. A workshop summary that
+	# only counts the deliveries is a scoreboard; the late and failed counts
+	# beside them are what make it a record of how the place is being run.
+	var late := int(stats.get("ordersLate", 0))
+	var failed := int(stats.get("printsFailed", 0))
 	column.add_child(_row("clipboard", Palette.SKY_DEEP, I18n.t("orders_delivered"),
-		I18n.number(int(stats.get("ordersCompleted", 0)))))
+		I18n.number(int(stats.get("ordersCompleted", 0))),
+		I18n.tf("orders_late", [late]) if late > 0 else ""))
 	column.add_child(_row("printer", Palette.TEAL_DEEP, I18n.t("prints_done"),
-		I18n.number(int(stats.get("printsCompleted", 0)))))
-	column.add_child(_row("spool", Palette.ORANGE, I18n.t("grams"),
-		I18n.number(int(stats.get("gramsPrinted", 0)))))
+		I18n.number(int(stats.get("printsCompleted", 0))),
+		I18n.tf("prints_failed", [failed]) if failed > 0 else ""))
+	column.add_child(_row("spool", Palette.ORANGE, I18n.t("filament_printed"),
+		"%s %s" % [I18n.number(int(stats.get("gramsPrinted", 0))), I18n.t("grams")]))
+	column.add_child(_row("store", Palette.CORAL_DEEP, I18n.t("store_sales"),
+		I18n.number(int(stats.get("storeSales", 0)))))
 	column.add_child(_row("coin", Palette.YELLOW_DEEP, I18n.t("coins_earned"),
 		I18n.number(int(stats.get("coinsEarned", 0)))))
+	column.add_child(_row("coin", Palette.INK_FAINT, I18n.t("coins_spent"),
+		I18n.number(int(stats.get("coinsSpent", 0)))))
 	return card
 
 
-func _row(icon_name: String, color: Color, label_text: String, value: String) -> Control:
+func _row(
+	icon_name: String, color: Color, label_text: String, value: String, note: String = ""
+) -> Control:
 	var row := UiKit.hbox(8)
 	row.add_child(UiKit.icon(icon_name, color, 17.0))
 	var name_label := UiKit.label(label_text, UiKit.FONT_SMALL, Palette.INK_SOFT)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(name_label)
+	if note != "":
+		row.add_child(UiKit.label(note, UiKit.FONT_CAPTION, Palette.CORAL_DEEP))
 	row.add_child(UiKit.label(value, UiKit.FONT_SMALL, Palette.INK, true))
 	return row

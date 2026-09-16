@@ -87,14 +87,14 @@ func _status_section(printer: Dictionary) -> Control:
 	var info := UiKit.vbox(2)
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var qty := int(job.get("qty", 1))
-	var name_text: String = String(product.get("name", "Part"))
+	var name_text: String = I18n.name_of("product", product)
 	if qty > 1:
 		name_text += " ×%d" % qty
 	info.add_child(UiKit.label(name_text, UiKit.FONT_BODY, Palette.INK, true))
 	var material := Config.material(String(job.get("materialId", "")))
 	var color := Config.color(String(job.get("colorId", "")))
 	info.add_child(UiKit.caption("%s · %s · %s %s" % [
-		String(material.get("name", "")), String(color.get("name", "")),
+		I18n.name_of("material", material), I18n.name_of("color", color),
 		I18n.number(int(job.get("grams", 0))), I18n.t("grams")
 	]))
 	row.add_child(info)
@@ -117,15 +117,17 @@ func _status_section(printer: Dictionary) -> Control:
 	return card
 
 
+## What went wrong, in the player's language. The kinds are the server's
+## FailureKind — anything it sends that is not listed reads as a mechanical
+## fault rather than as a missing string.
+const FAILURES := [
+	"spaghetti", "first_layer", "clogged_nozzle", "filament_runout",
+	"ams_jam", "part_detached", "mechanical",
+]
+
+
 func _failure_text(kind: String) -> String:
-	match kind:
-		"spaghetti": return "Spaghetti — the part came loose mid-print"
-		"first_layer": return "First layer did not stick"
-		"clogged_nozzle": return "Nozzle clogged"
-		"filament_runout": return "Filament ran out"
-		"ams_jam": return "AMS jam"
-		"part_detached": return "Part detached from the plate"
-		_: return "Mechanical fault"
+	return I18n.t("failure_" + (kind if FAILURES.has(kind) else "mechanical"))
 
 
 ## Health, and only the detail that matters: the band it is in and the hours.
@@ -181,7 +183,7 @@ func _queue_section(printer: Dictionary) -> Control:
 			Palette.PAPER if i == 0 else Palette.INK_SOFT
 		))
 		var name_label := UiKit.label(
-			"%s ×%d" % [String(product.get("name", "Part")), int(job.get("qty", 1))],
+			"%s ×%d" % [I18n.name_of("product", product), int(job.get("qty", 1))],
 			UiKit.FONT_SMALL, Palette.INK
 		)
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -398,7 +400,7 @@ func _open_service(printer: Dictionary) -> void:
 
 		var info := UiKit.vbox(2)
 		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		info.add_child(UiKit.label(String(action.get("name", "")), UiKit.FONT_BODY, Palette.INK, true))
+		info.add_child(UiKit.label(I18n.name_of("action", action), UiKit.FONT_BODY, Palette.INK, true))
 		var detail := "+%d%% · %s" % [
 			int(action.get("restores", 0)),
 			ServerClock.format_short(int(action.get("durationMs", 0)))
@@ -426,7 +428,7 @@ func _open_service(printer: Dictionary) -> void:
 func _part_name(part_id: String) -> String:
 	for part in Config.all_parts():
 		if String(part.get("id", "")) == part_id:
-			return String(part.get("name", part_id))
+			return I18n.name_of("part", part)
 	return part_id
 
 
