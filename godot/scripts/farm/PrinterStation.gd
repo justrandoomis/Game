@@ -52,6 +52,15 @@ func _ready() -> void:
 	_refresh_label()
 
 
+## How close the camera is, passed through to the status tag. The camera can
+## announce a zoom while a room is still being built, so a station that has not
+## reached _ready() yet simply has nothing to tell — the tag reads the zoom
+## again the first time the state is applied.
+func set_zoom(level: float) -> void:
+	if is_node_ready():
+		bubble.call("set_zoom", level)
+
+
 func setup(next_slot_id: String, next_label: String) -> void:
 	slot_id = next_slot_id
 	station_label = next_label

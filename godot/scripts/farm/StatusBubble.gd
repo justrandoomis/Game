@@ -6,17 +6,29 @@ extends Node2D
 ## failure gets the one alert in the scene that moves. Health only appears once
 ## it matters, so the farm never looks like a wall of gauges.
 ##
-## An idle machine shrinks to a dot. Idle is the commonest state a farm is in —
-## a workshop of twelve stations was a wall of tags reading "Idle", each one
-## nearly as wide as the tile it stood on and covering the machine behind it.
-## The dot still says the station is ready, in the same colour, and the machine
-## under it is visible, which is the thing the player actually came to look at.
+## A bubble shrinks to a dot when it has nothing worth a word. Idle is the
+## commonest state a farm is in — a workshop of twelve stations was a wall of
+## tags reading "Idle", each one nearly as wide as the tile it stood on and
+## covering the machine behind it. The dot still says the station is ready, in
+## the same colour, and the machine under it is visible, which is the thing the
+## player actually came to look at.
+##
+## So does every bubble but a failure once the camera is far enough out that
+## the text would not be readable anyway. A thirty-six station farm framed
+## whole is the case that matters: at that zoom the tag is a third of its
+## drawn size and its type is four pixels tall, and thirty-six of them are a
+## mat of paper over the workshop. A failure keeps its word at any zoom,
+## because it is the one thing the player has to come back for.
 
 const WIDTH := 96.0
 const WIDTH_QUIET := 30.0
 const HEIGHT := 30.0
 const HEIGHT_QUIET := 22.0
 const BAR_H := 5.0
+## Camera zoom below which the bubble's text stops being worth drawing. The
+## Label is 11 px, so this is where it lands under about eight — the point it
+## reads as a grey smudge rather than as a word.
+const TEXT_ZOOM_MIN := 0.72
 
 var _status: String = "idle"
 var _progress: float = 0.0
@@ -28,6 +40,9 @@ var _time: float = 0.0
 ## so a failure alert returns to the same place the bubble started. Without it
 ## an alerting bubble drops onto the machine it is meant to be pointing at.
 var _base: float = -62.0
+## Set by the station from the camera. Starts at 1 so a bubble built before the
+## first frame is drawn in full rather than flashing from a dot.
+var _zoom: float = 1.0
 
 @onready var text_label: Label = $Text
 
@@ -39,11 +54,26 @@ func _ready() -> void:
 	_layout_label()
 
 
-## Whether this bubble is down to a dot: idle, and nothing else to say. A
-## machine that is idle but due a service still wants a word — being quiet
-## about it is how a farm ends up full of worn machines.
+## Whether this bubble is down to a dot: nothing to say, or too far away to
+## say it. A machine that is idle but due a service still wants a word — being
+## quiet about it is how a farm ends up full of worn machines — and a failure
+## says so however far out the camera is.
 func _quiet() -> bool:
+	if _status == "failed":
+		return false
+	if _zoom < TEXT_ZOOM_MIN:
+		return true
 	return _status == "idle" and not _needs_service()
+
+
+## Told by the station whenever the camera moves.
+func set_zoom(level: float) -> void:
+	if is_equal_approx(level, _zoom):
+		return
+	_zoom = level
+	if is_node_ready():
+		text_label.visible = not _quiet()
+	queue_redraw()
 
 
 func _needs_service() -> bool:

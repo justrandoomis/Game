@@ -52,7 +52,9 @@ func rebuild() -> void:
 	if products.is_empty():
 		_column.add_child(UiKit.empty_state("store", I18n.t("shop"), I18n.t("level_too_low")))
 	else:
-		_column.add_child(_locked_hint())
+		var next_up := _next_locked()
+		if not next_up.is_empty():
+			_column.add_child(_locked_hint(next_up))
 
 
 ## What is on the shelf right now, and what it is worth at today's prices. The
@@ -88,7 +90,7 @@ func _shelf_summary(stock: Dictionary, demand: Dictionary) -> Control:
 
 ## The next product the player has not reached yet, so the shop always shows
 ## there is more coming rather than ending on the last unlocked line.
-func _locked_hint() -> Control:
+func _next_locked() -> Dictionary:
 	var best := {}
 	for product in Config.all_products():
 		var level := int(product.get("unlockLevel", 1))
@@ -96,9 +98,10 @@ func _locked_hint() -> Control:
 			continue
 		if best.is_empty() or level < int(best.get("unlockLevel", 1)):
 			best = product
-	if best.is_empty():
-		return UiKit.vspace(0.0)
+	return best
 
+
+func _locked_hint(best: Dictionary) -> Control:
 	var card := UiKit.card(12, Palette.SAND)
 	var row := UiKit.hbox(10)
 	card.add_child(row)

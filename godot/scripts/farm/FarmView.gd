@@ -35,10 +35,14 @@ var _cols: int = 2
 var _tier_index: int = -1
 var _tick_accumulator: float = 0.0
 var _pending_focus: String = ""
+## How close the camera is. Stations are told, because how much a status tag
+## can say depends on how big it is going to be on screen.
+var _zoom: float = 1.0
 
 
 func _ready() -> void:
 	camera.tapped.connect(_on_tapped)
+	camera.zoom_changed.connect(_on_zoom_changed)
 	GameState.state_changed.connect(_on_state_changed)
 	Events.focus_slot.connect(_on_focus_slot)
 	Events.station_event.connect(_on_station_event)
@@ -184,6 +188,7 @@ func _sync_stations() -> void:
 		if not printer.is_empty():
 			station.visible = true
 			empty.visible = false
+			station.call("set_zoom", _zoom)
 			_apply_printer(station, printer)
 			continue
 
@@ -200,6 +205,16 @@ func _sync_stations() -> void:
 			# Locked cells are visible but silent — the eye should land on the
 			# one slot the player can actually buy next.
 			empty.setup(slot_id, false, "", 0)
+
+
+func _on_zoom_changed(level: float) -> void:
+	if is_equal_approx(level, _zoom):
+		return
+	_zoom = level
+	for slot_id in _stations.keys():
+		var station: Node2D = _stations[slot_id]
+		if station.visible:
+			station.call("set_zoom", level)
 
 
 ## The one slot the player may buy next. Unlocking in reading order is what

@@ -7,6 +7,11 @@ extends Camera2D
 ## lose the farm off-screen.
 
 signal tapped(world_position: Vector2)
+## How close the view is, whenever it changes. The status tags above the
+## machines listen: at the far end of the zoom range their text is four pixels
+## tall, so they fall back to a coloured dot rather than papering the workshop
+## with words nobody can read.
+signal zoom_changed(level: float)
 
 const ZOOM_MIN := 0.40
 const ZOOM_MAX := 1.7
@@ -52,6 +57,10 @@ func frame_room(
 	var fit: float = fit_width if fit_height >= fit_width else maxf(fit_height, fit_width * 0.78)
 	# Camera2D zoom is a scale factor: larger means closer.
 	var target_zoom: float = clampf(fit, ZOOM_MIN, ZOOM_MAX)
+	# Announced now rather than when the tween lands: the tags have to be in
+	# their final form by the time the room finishes framing, not a moment
+	# after it.
+	zoom_changed.emit(target_zoom)
 	# Push the view down by half the difference between the HUD and the nav bar
 	# so the room sits centred in the strip of screen the player can actually
 	# see, not centred behind the chrome.
@@ -138,6 +147,7 @@ func _apply_zoom(next: float) -> void:
 	zoom = Vector2(clamped, clamped)
 	offset = Vector2(0.0, _screen_shift / clamped)
 	_clamp_position()
+	zoom_changed.emit(clamped)
 
 
 ## Keep the room on screen. When the room is smaller than the view in an axis,

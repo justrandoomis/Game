@@ -170,7 +170,7 @@ static func cost_button(
 	cost: int, kind: String = "secondary", width: float = 96.0
 ) -> Button:
 	var node := button("", kind)
-	node.custom_minimum_size = Vector2(width, 40.0)
+	node.custom_minimum_size = Vector2(width, TAP_MIN)
 	var affordable: bool = GameState.coins() >= cost
 	var row := hbox(GAP_XS)
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)
