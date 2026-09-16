@@ -39,6 +39,7 @@ func rebuild() -> void:
 	var ready: Array = by_status["ready"]
 	var waiting: Array = by_status["accepted"]
 	var running: Array = by_status["in_progress"]
+	var missed: Array = by_status["failed"]
 
 	_column.add_child(_summary(ready, waiting.size() + running.size()))
 
@@ -70,11 +71,20 @@ func rebuild() -> void:
 		for order in offers:
 			_column.add_child(_card(order, false))
 
+	# And last, what was missed. An order whose deadline passed with work
+	# outstanding costs reputation and pays nothing, and used to vanish off the
+	# board without a word — the player was left to notice the reputation had
+	# dropped and guess why. The server keeps these for a day.
+	if not missed.is_empty():
+		_column.add_child(UiKit.section(I18n.t("missed"), missed.size()))
+		for order in missed:
+			_column.add_child(_card(order, true))
+
 
 ## The board split by what has to happen next, with the closest deadline first
 ## inside each group.
 func _by_status() -> Dictionary:
-	var out := {"offered": [], "accepted": [], "in_progress": [], "ready": []}
+	var out := {"offered": [], "accepted": [], "in_progress": [], "ready": [], "failed": []}
 	for order in GameState.orders():
 		var status := String(order.get("status", ""))
 		if out.has(status):
@@ -123,18 +133,23 @@ func _summary(ready: Array, in_hand: int) -> Control:
 ## Collect every finished order in one go. Sent one at a time and in order,
 ## because each is a separate server-side payment and the server is the only
 ## thing that decides what any of them is worth.
+## Collect every finished order in one go. Sent one at a time and in order,
+## because each is a separate server-side payment.
+##
+## The coins that fly up come from the server's own reply to each collection,
+## routed through Main._on_fx — not from adding up the rewards printed on the
+## cards. A late delivery pays a fraction of its reward, so the card's figure
+## is not what was earned, and showing it here put a second, wrong burst on
+## screen beside the right one.
 func _collect_all(order_ids: PackedStringArray) -> void:
-	var earned := 0
+	var collected := 0
 	for order_id in order_ids:
-		var order := GameState.order_by_id(order_id)
-		if order.is_empty():
+		if GameState.order_by_id(order_id).is_empty():
 			continue
-		var reward := int(order.get("reward", 0))
 		if await GameState.intent("collect_order", {"orderId": order_id}):
-			earned += reward
-	if earned > 0:
+			collected += 1
+	if collected > 0:
 		Audio.play("coin")
-		Events.coins_earned.emit(earned, get_global_rect().get_center())
 
 
 func _card(order: Dictionary, compact: bool) -> Control:
@@ -158,12 +173,9 @@ func _on_action(kind: String, order_id: String) -> void:
 		"assign":
 			Events.navigate.emit("assign:" + order_id)
 		"deliver":
-			var order := GameState.order_by_id(order_id)
-			var reward := int(order.get("reward", 0))
-			var delivered := await GameState.intent("collect_order", {"orderId": order_id})
-			if delivered:
+			# The burst is the server's, not ours — see _collect_all().
+			if await GameState.intent("collect_order", {"orderId": order_id}):
 				Audio.play("coin")
-				Events.coins_earned.emit(reward, get_global_rect().get_center())
 
 
 ## One-second tick for countdowns and progress, without rebuilding the board.

@@ -152,9 +152,11 @@ func _build_footer() -> Control:
 
 	match status:
 		"offered":
-			_deadline_pill = UiKit.pill(
-				ServerClock.format_short(int(order.get("printMs", 0))), Palette.SAND, Palette.INK_SOFT
-			)
+			# How long the offer itself lasts, not how long the print takes —
+			# the print time is already a stat two lines above, and an offer
+			# that quietly expires with no countdown is the one thing on this
+			# card the player cannot plan around.
+			_deadline_pill = UiKit.pill(_offer_text(), Palette.SAND, Palette.INK_SOFT)
 			row.add_child(_deadline_pill)
 			row.add_child(UiKit.spacer())
 			var reject := UiKit.button(I18n.t("reject"), "ghost")
@@ -182,21 +184,85 @@ func _build_footer() -> Control:
 			column.add_child(head)
 			_progress_bar = UiKit.bar(_order_progress(), Palette.SKY_DEEP, 8.0)
 			column.add_child(_progress_bar)
+			# A leg lost to a cancellation or a failure leaves the order short.
+			# The server will not take it as delivered until the shortfall is
+			# printed, so the card has to offer somewhere to put it.
+			var owed := _outstanding()
+			if owed > 0:
+				var short_row := UiKit.hbox(8)
+				short_row.add_child(UiKit.caption(
+					I18n.tn("units_left", owed), Palette.ORANGE_DEEP
+				))
+				short_row.add_child(UiKit.spacer())
+				var top_up := UiKit.button(I18n.t("assign"), "secondary")
+				top_up.custom_minimum_size = Vector2(104, 40)
+				top_up.pressed.connect(func(): action.emit("assign", String(order.get("id", ""))))
+				short_row.add_child(top_up)
+				column.add_child(short_row)
 			return column
 		"ready":
-			row.add_child(UiKit.pill(I18n.t("ready"), Palette.GREEN_DEEP))
 			# A finished order is drawn compact on the board, so its reward is
 			# not in the stats block above — and the reward is the whole reason
-			# to press the button beside it.
-			row.add_child(UiKit.coin(int(order.get("reward", 0)), Palette.GREEN_DEEP))
+			# to press the button beside it. Past its deadline it pays a
+			# fraction, which the card has to say before the coins land at a
+			# number the player was not expecting.
+			var late := _overdue() or bool(order.get("late", false))
+			if late:
+				row.add_child(UiKit.pill(
+					I18n.tf("late_pay", [int(round(Config.late_penalty() * 100.0))]),
+					Palette.CORAL_DEEP
+				))
+			else:
+				row.add_child(UiKit.pill(I18n.t("ready"), Palette.GREEN_DEEP))
+			row.add_child(UiKit.coin(
+				_payout(), Palette.CORAL_DEEP if late else Palette.GREEN_DEEP
+			))
 			row.add_child(UiKit.spacer())
 			var deliver := UiKit.button(I18n.t("deliver"), "warm")
 			deliver.custom_minimum_size = Vector2(104, 40)
 			deliver.pressed.connect(func(): action.emit("deliver", String(order.get("id", ""))))
 			row.add_child(deliver)
-		_:
+		"failed":
+			row.add_child(UiKit.pill(I18n.t("failed_order"), Palette.CORAL_DEEP))
+			row.add_child(UiKit.spacer())
+			row.add_child(UiKit.caption(
+				"%s %d" % [I18n.t("reputation"), -int(order.get("repReward", 0))], Palette.CORAL_DEEP
+			))
+		"delivered", "expired", "rejected":
 			row.add_child(UiKit.pill(I18n.t(status), Palette.INK_FAINT))
+		_:
+			row.add_child(UiKit.pill(status.capitalize(), Palette.INK_FAINT))
 	return row
+
+
+## Units of the order that no live job covers. Mirrors outstandingQty() on the
+## server, which is what decides whether the order can be delivered.
+func _outstanding() -> int:
+	var covered := 0
+	for job_id in order.get("jobIds", []):
+		var job := GameState.job_by_id(String(job_id))
+		if not job.is_empty():
+			covered += int(job.get("qty", 0))
+	return maxi(0, int(order.get("qty", 1)) - covered)
+
+
+## What this order pays if it is collected now. A quote from the same number
+## the server uses, so the card and the coins agree; the server still decides.
+func _payout() -> int:
+	var reward := int(order.get("reward", 0))
+	if _overdue() or bool(order.get("late", false)):
+		return int(round(float(reward) * Config.late_penalty()))
+	return reward
+
+
+## How long an offer stays on the board. Falls back to the print time only if
+## the server did not send an expiry.
+func _offer_text() -> String:
+	var expires := Val.field_int(order, "expiresAt", 0)
+	if expires <= 0:
+		return ServerClock.format_short(int(order.get("printMs", 0)))
+	var left := ServerClock.remaining(expires)
+	return ServerClock.format_short(left) if left > 0 else I18n.t("expired")
 
 
 ## Countdown chip whose colour strengthens as the deadline approaches.
@@ -258,12 +324,19 @@ func _order_progress() -> float:
 func tick() -> void:
 	if _progress_bar != null and is_instance_valid(_progress_bar):
 		_progress_bar.value = _order_progress()
-	if _deadline_pill != null and is_instance_valid(_deadline_pill):
+	if _deadline_pill == null or not is_instance_valid(_deadline_pill):
+		return
+	# An offer counts down to when it leaves the board; everything accepted
+	# counts down to its delivery deadline.
+	var text := ""
+	if String(order.get("status", "")) == "offered":
+		text = _offer_text()
+	else:
 		var due := Val.field_int(order, "dueAt", 0)
-		if due > 0:
-			var text := ServerClock.format_short(ServerClock.remaining(due))
-			if ServerClock.remaining(due) <= 0:
-				text = I18n.t("overdue")
-			for child in _deadline_pill.get_children():
-				if child is Label:
-					child.text = text
+		if due <= 0:
+			return
+		text = I18n.t("overdue") if ServerClock.remaining(due) <= 0 \
+			else ServerClock.format_short(ServerClock.remaining(due))
+	for child in _deadline_pill.get_children():
+		if child is Label:
+			child.text = text

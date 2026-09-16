@@ -179,8 +179,11 @@ export function planAssignment(
   config: GameConfig,
   order: Order,
   printers: Printer[],
+  /** Units to plan for. Defaults to the whole order; a re-assignment after a
+   *  lost leg passes only what is still outstanding. */
+  qty = order.qty,
 ): Assignment[] {
-  if (!printers.length) return [];
+  if (!printers.length || qty <= 0) return [];
   const prod = product(config, order.productId);
   const rates = printers.map((p) => {
     const oneUnit = estimateDuration(config, p, order.productId, 1, order.materialId);
@@ -189,7 +192,7 @@ export function planAssignment(
   const totalRate = rates.reduce((a, b) => a + b, 0);
   if (totalRate <= 0) return [];
 
-  const raw = rates.map((r) => (r / totalRate) * order.qty);
+  const raw = rates.map((r) => (r / totalRate) * qty);
   const qtys = raw.map((v) => Math.floor(v));
   let assigned = qtys.reduce((a, b) => a + b, 0);
 
@@ -198,7 +201,7 @@ export function planAssignment(
     .map((v, i) => ({ i, frac: v - Math.floor(v) }))
     .sort((a, b) => b.frac - a.frac);
   let k = 0;
-  while (assigned < order.qty) {
+  while (assigned < qty) {
     qtys[order2[k % order2.length].i] += 1;
     assigned += 1;
     k += 1;

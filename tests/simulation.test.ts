@@ -347,6 +347,68 @@ describe('multi-printer jobs', () => {
     const durations = jobs.map((j) => j.durationMs).sort((a, b) => a - b);
     expect(durations[1] / durations[0]).toBeLessThan(1.6);
   });
+
+  it('does not deliver a split order that lost a leg, and lets the rest be re-assigned', () => {
+    const state = newFarm();
+    state.coins = 100_000;
+    state.level = 30;
+    intents.unlockSlot(config, state, T0, 's_0_1');
+    intents.buyPrinter(config, state, T0, 'a1', 's_0_1');
+    intents.buySpool(config, state, T0, 'pla', 'green', 5);
+
+    const order = generateOrder(config, state, T0, 'shortfall')!;
+    order.qty = 4;
+    order.materialId = 'pla';
+    order.colorId = 'green';
+    order.grams = 4 * 26;
+    state.orders.push(order);
+    intents.acceptOrder(config, state, T0, order.id);
+    intents.assignOrder(config, state, T0, order.id, state.printers.map((p) => p.id));
+
+    const jobs = state.jobs.filter((j) => j.orderId === order.id);
+    expect(jobs.length).toBe(2);
+    const lost = jobs[0];
+    const kept = jobs[1];
+    expect(intents.cancelJob(config, state, T0, lost.id).ok).toBe(true);
+
+    // The surviving leg runs to completion — with failures switched off, so the
+    // only reason the order can be short is the leg that was cancelled.
+    const safe = mergeConfig(config, { failures: { globalFactor: 0 } });
+    kept.status = 'printing';
+    kept.startedAt = T0;
+    resolveFarm(safe, state, T0 + kept.durationMs + 1000);
+    expect(state.jobs.find((j) => j.id === kept.id)!.status).toBe('done');
+    // It is short, so it is not deliverable.
+    expect(state.orders.find((o) => o.id === order.id)!.status).not.toBe('ready');
+
+    // And the units the lost leg was carrying can be put on a machine again.
+    const owed = intents.outstandingQty(state, state.orders.find((o) => o.id === order.id)!);
+    expect(owed).toBe(lost.qty);
+    const again = intents.assignOrder(config, state, T0, order.id, [lost.printerId]);
+    expect(again.ok).toBe(true);
+    expect(intents.outstandingQty(state, state.orders.find((o) => o.id === order.id)!)).toBe(0);
+  });
+
+  it('puts an order back on the board when its only job is cancelled', () => {
+    const state = newFarm();
+    const { offer } = startFirstJob(state);
+    const job = state.jobs.find((j) => j.orderId === offer.id)!;
+    expect(state.orders.find((o) => o.id === offer.id)!.status).toBe('in_progress');
+
+    expect(intents.cancelJob(config, state, T0, job.id).ok).toBe(true);
+    const order = state.orders.find((o) => o.id === offer.id)!;
+    expect(order.status).toBe('accepted');
+    // Which is the whole point: it can be handed to a machine again.
+    expect(intents.assignOrder(config, state, T0, order.id, [state.printers[0].id]).ok).toBe(true);
+  });
+
+  it('refuses to assign an order that is already fully covered', () => {
+    const state = newFarm();
+    const { offer } = startFirstJob(state);
+    const result = intents.assignOrder(config, state, T0, offer.id, [state.printers[0].id]);
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe('order_fully_assigned');
+  });
 });
 
 describe('estimates match what the server does', () => {

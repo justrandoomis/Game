@@ -291,7 +291,14 @@ export function assignOrder(
 ): IntentResult {
   const order = state.orders.find((o) => o.id === orderId);
   if (!order) return fail('unknown_order');
-  if (order.status !== 'accepted') return fail('order_not_accepted');
+  // An order already on the machines can be assigned again, for the units a
+  // cancelled or failed leg left uncovered. Anything else — offered, ready,
+  // delivered — is not work that can be handed out.
+  if (order.status !== 'accepted' && order.status !== 'in_progress') {
+    return fail('order_not_accepted');
+  }
+  const outstanding = outstandingQty(state, order);
+  if (outstanding <= 0) return fail('order_fully_assigned');
   if (!printerIds.length) return fail('no_printer_selected');
 
   const printers = printerIds
@@ -302,7 +309,7 @@ export function assignOrder(
   const allowed = new Set(eligiblePrinters(config, state, order).map((p) => p.id));
   for (const p of printers) if (!allowed.has(p.id)) return fail('printer_unavailable');
 
-  const plan = planAssignment(config, order, printers);
+  const plan = planAssignment(config, order, printers, outstanding);
   if (!plan.length) return fail('assignment_failed');
 
   const totalGrams = plan.reduce((sum, a) => sum + a.grams, 0);
@@ -350,6 +357,16 @@ export function assignOrder(
   appendLog(state, now, 'order_started', 'orderStarted', { customer: order.customerName });
   return done({ kind: 'job_started' });
 }
+
+/** Units of an order that no live job covers — what is still to be printed. */
+export function outstandingQty(state: FarmState, order: Order): number {
+  const covered = order.jobIds
+    .map((id) => state.jobs.find((j) => j.id === id))
+    .filter((j): j is Job => !!j)
+    .reduce((sum, j) => sum + j.qty, 0);
+  return Math.max(0, order.qty - covered);
+}
+
 
 export function collectOrder(config: GameConfig, state: FarmState, now: number, orderId: string): IntentResult {
   const order = state.orders.find((o) => o.id === orderId);
@@ -435,7 +452,13 @@ export function cancelJob(config: GameConfig, state: FarmState, now: number, job
     startNextJob(state, printer, now);
   }
   const order = job.orderId ? state.orders.find((o) => o.id === job.orderId) : null;
-  if (order) order.jobIds = order.jobIds.filter((id) => id !== jobId);
+  if (order) {
+    order.jobIds = order.jobIds.filter((id) => id !== jobId);
+    // Pulling the last job leaves an order with nothing on any machine. Left
+    // as in_progress it could be neither re-assigned nor abandoned, and sat
+    // holding a slot until its deadline failed it.
+    if (order.status === 'in_progress' && order.jobIds.length === 0) order.status = 'accepted';
+  }
   return done();
 }
 

@@ -197,6 +197,8 @@ export interface AwayReport {
   printsFailed: number;
   ordersDelivered: number;
   ordersExpired: number;
+  /** Accepted orders whose deadline passed with work outstanding. */
+  ordersFailed: number;
   coinsEarned: number;
   storeSales: number;
   newOrders: number;

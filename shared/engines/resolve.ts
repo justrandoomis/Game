@@ -58,6 +58,7 @@ function emptyReport(elapsedMs: number): AwayReport {
     printsFailed: 0,
     ordersDelivered: 0,
     ordersExpired: 0,
+    ordersFailed: 0,
     coinsEarned: 0,
     storeSales: 0,
     newOrders: 0,
@@ -192,7 +193,15 @@ function completeJob(config: GameConfig, state: FarmState, job: Job, t: number, 
       const all = order.jobIds
         .map((id) => findJob(state, id))
         .filter((j): j is Job => !!j);
-      if (all.length && all.every((j) => j.status === 'done' || j.status === 'collected')) {
+      const printed = all.reduce((sum, j) => sum + j.qty, 0);
+      // Every surviving job finished AND between them they cover the order.
+      // Without the quantity check, a split order that lost a leg to a failure
+      // went out as "ready" short of what the customer asked for — and paid in
+      // full for it.
+      const complete = all.length > 0
+        && all.every((j) => j.status === 'done' || j.status === 'collected')
+        && printed >= order.qty;
+      if (complete) {
         order.status = 'ready';
         order.readyAt = t;
         log(state, t, 'order_ready', 'orderReady', { customer: order.customerName });
@@ -293,7 +302,9 @@ export function resolveFarm(
           cancelOrderJobs(config, state, order, cursor);
           order.status = 'failed';
           order.late = true;
+          order.readyAt = cursor;
           state.stats.ordersFailed += 1;
+          report.ordersFailed += 1;
           applyReputation(config, state, -(config.reputation.lateLoss + config.reputation.failLoss));
           log(state, cursor, 'order_failed', 'orderFailed', { customer: order.customerName });
         }
@@ -373,8 +384,12 @@ export function resolveFarm(
   pruneEmptySpools(state);
 
   // Drop resolved history so the save stays small.
+  // Delivered and missed orders stay on the board for a day, so the player
+  // can see what happened while they were away; everything else resolved goes
+  // straight out. Without the 'failed' clause they accumulated for ever.
   state.orders = state.orders.filter(
-    (o) => !['expired', 'rejected'].includes(o.status) && !(o.status === 'delivered' && (o.readyAt ?? 0) < now - 86_400_000),
+    (o) => !['expired', 'rejected'].includes(o.status)
+      && !(['delivered', 'failed'].includes(o.status) && (o.readyAt ?? 0) < now - 86_400_000),
   );
   state.jobs = state.jobs.filter(
     (j) => j.status !== 'collected' && !(j.status === 'done' && !j.orderId),

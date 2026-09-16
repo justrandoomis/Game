@@ -134,6 +134,13 @@ func health_thresholds() -> Dictionary:
 	return data.get("maintenance", {}).get("thresholds", {"good": 100, "service": 70, "warning": 40, "critical": 20})
 
 
+## What an order pays when it is delivered after its deadline, as a fraction
+## of the reward. A quote for the card, not the payment: the server works out
+## what actually lands, from this same number.
+func late_penalty() -> float:
+	return float(data.get("economy", {}).get("latePenalty", 0.45))
+
+
 ## Cost of the next station, mirroring shared/engines/economy.ts.
 func slot_cost(unlocked_count: int) -> int:
 	var w: Dictionary = data.get("workshop", {})
