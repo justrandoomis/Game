@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bebsb1eyejdrs"
-path="res://.godot/imported/printer_glass.png-374293c581b195019fe63d397e0ef816.ctex"
+uid="uid://2nuokube1h27"
+path="res://.godot/imported/spool_reel_clear.png-a0041acc466924ae1cb6698bd064a954.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/props/printer_glass.png"
-dest_files=["res://.godot/imported/printer_glass.png-374293c581b195019fe63d397e0ef816.ctex"]
+source_file="res://assets/props/spool_reel_clear.png"
+dest_files=["res://.godot/imported/spool_reel_clear.png-a0041acc466924ae1cb6698bd064a954.ctex"]
 
 [params]
 

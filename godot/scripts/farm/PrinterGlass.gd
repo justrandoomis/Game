@@ -7,9 +7,8 @@ extends Node2D
 ## sprite would put the glass behind the print or the print outside the
 ## machine.
 
-const GLASS := "printer_glass"
-
-var _shown: bool = false
+var _glass_id: String = ""
+var _scale: float = 1.0
 var _tint: Color = Color.WHITE
 
 
@@ -18,19 +17,22 @@ func _ready() -> void:
 
 
 ## Declared for the boot check — see PrinterStation.prop_ids().
+## Declared on Printer.gd, which owns the whole family table.
 func prop_ids() -> PackedStringArray:
-	return PackedStringArray([GLASS])
+	return PackedStringArray()
 
 
-func set_enclosed(enclosed: bool, tint: Color) -> void:
-	if _shown == enclosed and _tint == tint:
+## An empty id means an open-frame machine, which has no front to draw.
+func set_shell(glass_id: String, shell_scale: float, tint: Color) -> void:
+	if _glass_id == glass_id and is_equal_approx(_scale, shell_scale) and _tint == tint:
 		return
-	_shown = enclosed
+	_glass_id = glass_id
+	_scale = shell_scale
 	_tint = tint
 	queue_redraw()
 
 
 func _draw() -> void:
-	if not _shown:
+	if _glass_id == "":
 		return
-	Props.draw(self, GLASS, Vector2.ZERO, 1.0, _tint)
+	Props.draw(self, _glass_id, Vector2.ZERO, _scale, _tint)

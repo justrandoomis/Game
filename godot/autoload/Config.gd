@@ -56,6 +56,29 @@ func material(id: String) -> Dictionary:
 	return _materials.get(id, {})
 
 
+## The material's swatch colour. The catalogue ships it as a hex string and
+## every caller wants a Color.
+func material_tint(id: String) -> Color:
+	var hex := String(material(id).get("tint", ""))
+	return Color(hex) if hex.begins_with("#") else Palette.INK_FAINT
+
+
+## Which reel a material's spools come on: "clear", "solid" or "tech".
+##
+## Filament ships on heavier reels the more demanding the plastic is, and that
+## is exactly the axis the catalogue already orders materials along — so the
+## reel is read off the unlock level rather than listed here. A material added
+## to the catalogue therefore arrives with a reel that matches its tier without
+## anything in the client changing.
+func material_reel(id: String) -> String:
+	var level := int(material(id).get("unlockLevel", 1))
+	if level <= 6:
+		return "clear"
+	if level <= 18:
+		return "solid"
+	return "tech"
+
+
 func color(id: String) -> Dictionary:
 	return _colors.get(id, {})
 

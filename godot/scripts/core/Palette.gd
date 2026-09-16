@@ -91,6 +91,17 @@ func filament(color_id: String) -> Color:
 	return FILAMENT.get(color_id, INK_FAINT)
 
 
+## The tone a spool's reel is moulded in, for a given material swatch.
+##
+## The reel is moulded in the material's own colour, lightened only enough to
+## keep it reading as plastic rather than as paint. It used to be mixed most of
+## the way to white, which made eight materials into one off-white ring at the
+## size a rack spool is actually drawn; the reel carries the material and has
+## to be allowed to.
+func reel(swatch: Color) -> Color:
+	return swatch.lerp(Color.WHITE, 0.18)
+
+
 func status(id: String) -> Color:
 	return STATUS.get(id, INK_FAINT)
 

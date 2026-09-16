@@ -1,56 +1,296 @@
 {
-	"_comment": [
-		"WHICH KayKit MODELS BECOME WORKSHOP PROPS, AND AT WHAT SIZE.",
-		"",
-		"This is the only place the asset choice lives. tools/BakeProps.gd reads it,",
-		"renders each model from the game's own fixed 2:1 dimetric camera, and writes",
-		"a sprite plus its anchor into assets/props/. Nothing at runtime ever touches",
-		"a mesh: the game ships flat sprites that already match the grid.",
-		"",
-		"px_per_unit is how many screen pixels one KayKit model unit becomes.",
-		"  prop  44.0    — free-standing furniture. A 2-unit table lands 124 px wide,",
-		"                  which is 84% of a 148 px floor cell, so stations keep a gap.",
-		"  wall  26.163  — TILE_W/2 / (4 * cos45). A 4-unit KayKit wall then spans",
-		"                  exactly one cell edge, so wall segments tile the grid.",
-		"",
-		"yaw rotates the model about Y before baking. The camera never moves, so this",
-		"is how one wall model yields both of the room's two back walls."
-	],
-	"supersample": 2.0,
-	"scales": {
-		"prop": 44.0,
-		"wall": 26.163
-	},
-	"props": [
-		{ "id": "printer_open",  "build": "printer_open",                   "scale": "prop", "note": "open-frame bed slinger — the A-series machines",
-		  "mounts": { "plate": [0, 0.36, 0], "gantry": [0, 1.20, -0.26], "spool": [0, 1.57, -0.23], "ams": [0.98, 0, -0.20], "lamp": [0.50, 0.34, 0.44] } },
-		{ "id": "printer_case",  "build": "printer_case",                   "scale": "prop", "note": "enclosed chamber, drawn behind the print",
-		  "mounts": { "plate": [0, 0.36, 0], "gantry": [0, 1.19, -0.19], "ams": [0, 1.52, 0], "lamp": [0.54, 0.40, 0.58] } },
-		{ "id": "printer_glass", "build": "printer_glass",                  "scale": "prop", "note": "its front pane, drawn over the print" },
-		{ "id": "printer_ams",   "build": "printer_ams",                    "scale": "prop", "note": "multi-material unit, on the lid" },
-		{ "id": "spool",         "build": "spool",                          "scale": "prop", "note": "one white spool, tinted by whatever is wound on it" },
-
-		{ "id": "station_table", "src": "furniture/table_medium",           "scale": "prop", "note": "the printer workbench — one per station, every station identical" },
-
-		{ "id": "wall_right",    "src": "restaurant/wall",                  "scale": "wall", "yaw": 0,    "note": "back wall running lower-right, tiled one segment per cell" },
-		{ "id": "wall_left",     "src": "restaurant/wall",                  "scale": "wall", "yaw": -90,  "note": "same model, other wall" },
-		{ "id": "window_right",  "src": "restaurant/wall_window_open",      "scale": "wall", "yaw": 0 },
-		{ "id": "window_left",   "src": "restaurant/wall_window_open",      "scale": "wall", "yaw": -90,  "note": "the daylight the palette is built around" },
-		{ "id": "hatch_right",   "src": "restaurant/wall_orderwindow",      "scale": "wall", "yaw": 0,    "note": "customer collection hatch" },
-
-		{ "id": "shelf",         "src": "furniture/shelf_B_large",          "scale": "prop", "note": "filament rack — one texture, drawn three times" },
-		{ "id": "bench_cabinet", "src": "furniture/cabinet_medium",         "scale": "prop", "note": "maintenance bench base" },
-
-		{ "id": "crate",         "src": "restaurant/crate",                 "scale": "prop", "note": "parts bin under a table, and floor storage" },
-		{ "id": "box",           "src": "prototype/Box_A",                  "scale": "prop", "note": "packed print, ready to ship" },
-		{ "id": "box_taped",     "src": "prototype/Box_C",                  "scale": "prop" },
-		{ "id": "pallet",        "src": "prototype/Pallet_Small",           "scale": "prop" },
-
-		{ "id": "plant_small",   "src": "furniture/cactus_small_A",         "scale": "prop" },
-		{ "id": "plant_medium",  "src": "furniture/cactus_medium_A",        "scale": "prop" },
-		{ "id": "rug",           "src": "furniture/rug_rectangle_stripes_B","scale": "prop", "note": "drawn with a muted tone — see Decor.RUG_TONE" },
-		{ "id": "stool",         "src": "furniture/chair_stool_wood",       "scale": "prop" },
-		{ "id": "picture",       "src": "furniture/pictureframe_medium",    "scale": "prop", "note": "on the wall, replacing the drawn posters" },
-		{ "id": "books",         "src": "furniture/book_set",               "scale": "prop", "note": "manuals on the rack" }
-	]
+  "_comment": [
+    "WHICH KayKit MODELS BECOME WORKSHOP PROPS, AND AT WHAT SIZE.",
+    "",
+    "This is the only place the asset choice lives. tools/BakeProps.gd reads it,",
+    "renders each model from the game's own fixed 2:1 dimetric camera, and writes",
+    "a sprite plus its anchor into assets/props/. Nothing at runtime ever touches",
+    "a mesh: the game ships flat sprites that already match the grid.",
+    "",
+    "px_per_unit is how many screen pixels one KayKit model unit becomes.",
+    "  prop  44.0    — free-standing furniture. A 2-unit table lands 124 px wide,",
+    "                  which is 84% of a 148 px floor cell, so stations keep a gap.",
+    "  wall  26.163  — TILE_W/2 / (4 * cos45). A 4-unit KayKit wall then spans",
+    "                  exactly one cell edge, so wall segments tile the grid.",
+    "",
+    "yaw rotates the model about Y before baking. The camera never moves, so this",
+    "is how one wall model yields both of the room's two back walls."
+  ],
+  "supersample": 2.0,
+  "scales": {
+    "prop": 44.0,
+    "wall": 26.163
+  },
+  "props": [
+    {
+      "id": "printer_open",
+      "build": "printer_open",
+      "scale": "prop",
+      "note": "open-frame bed slinger — the A-series machines",
+      "mounts": {
+        "plate": [
+          0,
+          0.36,
+          0
+        ],
+        "gantry": [
+          0,
+          1.2,
+          -0.26
+        ],
+        "spool": [
+          0,
+          1.57,
+          -0.23
+        ],
+        "ams": [
+          0.98,
+          0,
+          -0.2
+        ],
+        "lamp": [
+          0.5,
+          0.34,
+          0.44
+        ]
+      }
+    },
+    {
+      "id": "printer_case_p",
+      "build": "printer_case_p",
+      "scale": "prop",
+      "note": "P-series: the plain enclosed box",
+      "mounts": {
+        "plate": [
+          0,
+          0.36,
+          0
+        ],
+        "gantry": [
+          0,
+          1.19,
+          -0.19
+        ],
+        "ams": [
+          0,
+          1.52,
+          0
+        ],
+        "lamp": [
+          0.54,
+          0.4,
+          0.58
+        ]
+      }
+    },
+    {
+      "id": "printer_glass_p",
+      "build": "printer_glass_p",
+      "scale": "prop",
+      "note": "its front pane, drawn over the print"
+    },
+    {
+      "id": "printer_case_x",
+      "build": "printer_case_x",
+      "scale": "prop",
+      "note": "X-series: camera pod, deeper lid, side exhaust",
+      "mounts": {
+        "plate": [
+          0,
+          0.36,
+          0
+        ],
+        "gantry": [
+          0,
+          1.26,
+          -0.2
+        ],
+        "ams": [
+          0,
+          1.66,
+          0
+        ],
+        "lamp": [
+          0.55,
+          0.4,
+          0.59
+        ]
+      }
+    },
+    {
+      "id": "printer_glass_x",
+      "build": "printer_glass_x",
+      "scale": "prop"
+    },
+    {
+      "id": "printer_case_h",
+      "build": "printer_case_h",
+      "scale": "prop",
+      "note": "H-series: bigger, vented, two nozzles, a material bay on top",
+      "mounts": {
+        "plate": [
+          0,
+          0.36,
+          0
+        ],
+        "gantry": [
+          0,
+          1.38,
+          -0.22
+        ],
+        "ams": [
+          0,
+          1.9,
+          0
+        ],
+        "lamp": [
+          0.6,
+          0.42,
+          0.64
+        ]
+      }
+    },
+    {
+      "id": "printer_glass_h",
+      "build": "printer_glass_h",
+      "scale": "prop"
+    },
+    {
+      "id": "printer_ams",
+      "build": "printer_ams",
+      "scale": "prop",
+      "note": "multi-material unit, on the lid"
+    },
+    {
+      "id": "spool",
+      "build": "spool",
+      "scale": "prop",
+      "note": "spool body — tinted by the filament colour"
+    },
+    {
+      "id": "spool_reel_clear",
+      "build": "spool_reel_clear",
+      "scale": "prop",
+      "note": "reel for commodity filament — thin flange, the wind shows through"
+    },
+    {
+      "id": "spool_reel_solid",
+      "build": "spool_reel_solid",
+      "scale": "prop",
+      "note": "reel for styrenics — moulded flange with four spokes"
+    },
+    {
+      "id": "spool_reel_tech",
+      "build": "spool_reel_tech",
+      "scale": "prop",
+      "note": "reel for engineering filament — heavy ribbed flange"
+    },
+    {
+      "id": "station_table",
+      "src": "furniture/table_medium",
+      "scale": "prop",
+      "note": "the printer workbench — one per station, every station identical"
+    },
+    {
+      "id": "wall_right",
+      "src": "restaurant/wall",
+      "scale": "wall",
+      "yaw": 0,
+      "note": "back wall running lower-right, tiled one segment per cell"
+    },
+    {
+      "id": "wall_left",
+      "src": "restaurant/wall",
+      "scale": "wall",
+      "yaw": -90,
+      "note": "same model, other wall"
+    },
+    {
+      "id": "window_right",
+      "src": "restaurant/wall_window_open",
+      "scale": "wall",
+      "yaw": 0
+    },
+    {
+      "id": "window_left",
+      "src": "restaurant/wall_window_open",
+      "scale": "wall",
+      "yaw": -90,
+      "note": "the daylight the palette is built around"
+    },
+    {
+      "id": "hatch_right",
+      "src": "restaurant/wall_orderwindow",
+      "scale": "wall",
+      "yaw": 0,
+      "note": "customer collection hatch"
+    },
+    {
+      "id": "shelf",
+      "src": "furniture/shelf_B_large",
+      "scale": "prop",
+      "note": "filament rack — one texture, drawn three times"
+    },
+    {
+      "id": "bench_cabinet",
+      "src": "furniture/cabinet_medium",
+      "scale": "prop",
+      "note": "maintenance bench base"
+    },
+    {
+      "id": "crate",
+      "src": "restaurant/crate",
+      "scale": "prop",
+      "note": "parts bin under a table, and floor storage"
+    },
+    {
+      "id": "box",
+      "src": "prototype/Box_A",
+      "scale": "prop",
+      "note": "packed print, ready to ship"
+    },
+    {
+      "id": "box_taped",
+      "src": "prototype/Box_C",
+      "scale": "prop"
+    },
+    {
+      "id": "pallet",
+      "src": "prototype/Pallet_Small",
+      "scale": "prop"
+    },
+    {
+      "id": "plant_small",
+      "src": "furniture/cactus_small_A",
+      "scale": "prop"
+    },
+    {
+      "id": "plant_medium",
+      "src": "furniture/cactus_medium_A",
+      "scale": "prop"
+    },
+    {
+      "id": "rug",
+      "src": "furniture/rug_rectangle_stripes_B",
+      "scale": "prop",
+      "note": "drawn with a muted tone — see Decor.RUG_TONE"
+    },
+    {
+      "id": "stool",
+      "src": "furniture/chair_stool_wood",
+      "scale": "prop"
+    },
+    {
+      "id": "picture",
+      "src": "furniture/pictureframe_medium",
+      "scale": "prop",
+      "note": "on the wall, replacing the drawn posters"
+    },
+    {
+      "id": "books",
+      "src": "furniture/book_set",
+      "scale": "prop",
+      "note": "manuals on the rack"
+    }
+  ]
 }

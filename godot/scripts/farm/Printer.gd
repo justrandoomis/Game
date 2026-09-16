@@ -18,10 +18,31 @@ extends Node2D
 ## proportion in PropModels moves the print, the nozzle and the spool with it.
 
 const OPEN := "printer_open"
-const CASE := "printer_case"
-const GLASS := "printer_glass"
 const AMS := "printer_ams"
 const SPOOL := "spool"
+
+## One shell per family. They are the same machine growing up, and the
+## differences are the ones the player is buying: a P is a plain box, an X adds
+## the camera that watches the print, an H is bigger, vented and twin-nozzled.
+const SHELLS := {
+	"A-series": "printer_open",
+	"P-series": "printer_case_p",
+	"X-series": "printer_case_x",
+	"H-series": "printer_case_h",
+}
+const GLASS := {
+	"P-series": "printer_glass_p",
+	"X-series": "printer_glass_x",
+	"H-series": "printer_glass_h",
+}
+
+## A machine is drawn at the size it is. Build volume is the number on the shop
+## card, so the sprite scales with it and an A1 mini is visibly a small machine
+## standing next to an H2C.
+const SIZE_BASE := 180.0
+const SIZE_SPAN := 220.0
+const SIZE_MIN := 0.84
+const SIZE_MAX := 1.20
 
 ## Layer thickness on screen, for revealing the print.
 const LAYER_H := 3.4
@@ -46,13 +67,21 @@ var filament_color: Color = Palette.GREEN
 var has_ams: bool = false
 
 var _skin: Dictionary = Palette.SKIN["cream"]
-var _enclosed: bool = false
+var _family: String = "A-series"
+var _shell_scale: float = 1.0
+var _material_id: String = "pla"
 var _shown_layers: int = -1
 
 
 ## Declared for the boot check — see PrinterStation.prop_ids().
 func prop_ids() -> PackedStringArray:
-	return PackedStringArray([OPEN, CASE, GLASS, AMS, SPOOL])
+	var out := PackedStringArray([AMS, SPOOL])
+	out.append_array(Reel.prop_ids())
+	for id in SHELLS.values():
+		out.append(String(id))
+	for id in GLASS.values():
+		out.append(String(id))
+	return out
 
 
 func _ready() -> void:
@@ -71,12 +100,24 @@ func configure(next_model_id: String, upgrades: Array = []) -> void:
 func _apply_model() -> void:
 	var entry := Config.printer_model(model_id) if Config.is_loaded else {}
 	_skin = Palette.skin(String(entry.get("skin", "cream")))
-	# A-series machines are open-frame bed slingers; P/X/H are enclosed boxes.
-	var family := String(entry.get("family", "A-series"))
-	_enclosed = family != "A-series"
+	_family = String(entry.get("family", "A-series"))
+	if not SHELLS.has(_family):
+		_family = "A-series"
+	_shell_scale = _size_of(entry)
 	if entry.has("multicolor") and bool(entry["multicolor"]):
 		has_ams = true
 	_place_parts()
+
+
+## How large this model is drawn, from the build volume the shop quotes.
+func _size_of(entry: Dictionary) -> float:
+	var build: Array = entry.get("build", [])
+	var largest := 0.0
+	for value in build:
+		largest = maxf(largest, float(value))
+	if largest <= 0.0:
+		return 1.0
+	return clampf(SIZE_MIN + 0.36 * (largest - SIZE_BASE) / SIZE_SPAN, SIZE_MIN, SIZE_MAX)
 
 
 ## Put the moving parts where this shell keeps them. A bed slinger and an
@@ -88,22 +129,32 @@ func _place_parts() -> void:
 	if head == null:
 		return
 	var shell := _shell()
-	var plate := Props.mount(shell, "plate")
+	var plate := Props.mount(shell, "plate", _shell_scale)
 	model_node.position = plate
 	head.position = plate
-	light.position = Props.mount(shell, "lamp")
-	glass.call("set_enclosed", _enclosed, _skin["body"])
+	model_node.scale = Vector2.ONE * _shell_scale
+	light.position = Props.mount(shell, "lamp", _shell_scale)
+	glass.call("set_shell", String(GLASS.get(_family, "")), _shell_scale, _skin["body"])
 
 
 func _shell() -> String:
-	return CASE if _enclosed else OPEN
+	return String(SHELLS.get(_family, OPEN))
+
+
+func _enclosed() -> bool:
+	return _family != "A-series"
 
 
 ## Update the live print. Only redraws the model when a layer actually lands,
 ## so a running printer costs one redraw every few seconds, not every frame.
-func set_print(next_status: String, next_progress: float, icon: String, color: Color) -> void:
+func set_print(
+	next_status: String, next_progress: float, icon: String, color: Color,
+	material_id: String = "pla"
+) -> void:
 	var layers_before := _shown_layers
 	var color_before := filament_color
+	var material_before := _material_id
+	_material_id = material_id
 	status = next_status
 	progress = clampf(next_progress, 0.0, 1.0)
 	product_icon = icon
@@ -121,7 +172,7 @@ func set_print(next_status: String, next_progress: float, icon: String, color: C
 		model_node.call("set_model", icon, color, progress)
 	# The spool on the arm is part of this node's own drawing, so a change of
 	# filament has to repaint it.
-	if color != color_before:
+	if color != color_before or material_id != material_before:
 		queue_redraw()
 
 
@@ -131,7 +182,9 @@ func _head_height() -> float:
 	if _shown_layers <= 0:
 		return NOZZLE_LIFT
 	var shell := _shell()
-	var span := absf(Props.mount(shell, "gantry").y - Props.mount(shell, "plate").y)
+	var span := absf(
+		Props.mount(shell, "gantry", _shell_scale).y - Props.mount(shell, "plate", _shell_scale).y
+	)
 	return clampf(
 		float(_shown_layers) * LAYER_H + NOZZLE_LIFT, NOZZLE_LIFT, maxf(NOZZLE_LIFT, span - GANTRY_CLEAR)
 	)
@@ -140,12 +193,15 @@ func _head_height() -> float:
 func _draw() -> void:
 	var shell := _shell()
 	var body: Color = _skin["body"]
-	Props.draw(self, shell, Vector2.ZERO, 1.0, body)
+	Props.draw(self, shell, Vector2.ZERO, _shell_scale, body)
 
 	# An open machine wears its spool on an arm over the gantry, where the
-	# player can see what colour is loaded. An enclosed one keeps it inside.
-	if not _enclosed:
-		Props.draw(self, SPOOL, Props.mount(shell, "spool"), ARM_SPOOL_SCALE, filament_color)
+	# player can see what is loaded. An enclosed one keeps it inside.
+	if not _enclosed():
+		var at := Props.mount(shell, "spool", _shell_scale)
+		var size := ARM_SPOOL_SCALE * _shell_scale
+		Props.draw(self, SPOOL, at, size, filament_color)
+		Props.draw(self, Reel.prop(_material_id), at, size, Reel.tint(_material_id))
 
 	if has_ams:
-		Props.draw(self, AMS, Props.mount(shell, "ams"), AMS_SCALE, body)
+		Props.draw(self, AMS, Props.mount(shell, "ams", _shell_scale), AMS_SCALE * _shell_scale, body)

@@ -29,8 +29,8 @@ const SPOOL_LIFT := 1.0
 const HEAD_ROOM := 4.0
 ## The spool model bakes about 40 px across; a rack spool wants a third of that
 ## when empty and a little over when full.
-const SPOOL_SCALE_MIN := 0.26
-const SPOOL_SCALE_GROW := 0.15
+const SPOOL_SCALE_MIN := 0.30
+const SPOOL_SCALE_GROW := 0.18
 
 ## The rack stands on a cell of the back walkway, but it is fixed to the wall
 ## behind that cell — half a tile up and to the right, which is where the
@@ -45,7 +45,9 @@ var _spools: Array = []
 
 ## Declared for the boot check — see PrinterStation.prop_ids().
 func prop_ids() -> PackedStringArray:
-	return PackedStringArray([SHELF, WALL, SPOOL])
+	var out := PackedStringArray([SHELF, WALL, SPOOL])
+	out.append_array(Reel.prop_ids())
+	return out
 
 
 func _ready() -> void:
@@ -89,7 +91,13 @@ func _draw() -> void:
 		)
 		# A fuller spool is a fatter spool, which is what a rack of them looks
 		# like and what makes "buy more filament" readable from across the room.
-		Props.draw(self, SPOOL, at, SPOOL_SCALE_MIN + SPOOL_SCALE_GROW * remaining, color)
+		# The body carries the filament's colour; the reel over it carries the
+		# material's — and comes in that material's own shape — so PLA and
+		# carbon fibre are not the same object in two colours.
+		var material_id := String(spool.get("materialId", "pla"))
+		var size := SPOOL_SCALE_MIN + SPOOL_SCALE_GROW * remaining
+		Props.draw(self, SPOOL, at, size, color)
+		Props.draw(self, Reel.prop(material_id), at, size, Reel.tint(material_id))
 
 
 func _shelf_base(shelf: int) -> Vector2:

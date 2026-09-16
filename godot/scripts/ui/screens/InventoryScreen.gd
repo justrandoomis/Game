@@ -68,7 +68,7 @@ func _spool_tile(spool: Dictionary) -> Control:
 	card.add_child(column)
 
 	var head := UiKit.hbox(8)
-	var disc := SpoolDisc.new(color, fill)
+	var disc := SpoolDisc.new(color, fill, String(spool.get("materialId", "pla")))
 	head.add_child(disc)
 	var info := UiKit.vbox(1)
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL

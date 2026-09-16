@@ -76,18 +76,20 @@ func apply(printer_data: Dictionary, job: Dictionary, progress: float) -> void:
 
 	var icon := "dino"
 	var color := Palette.GREEN
+	var material := "pla"
 	if not job.is_empty():
 		var product := Config.product(String(job.get("productId", "")))
 		icon = String(product.get("icon", "dino"))
 		color = Palette.filament(String(job.get("colorId", "green")))
+		material = String(job.get("materialId", "pla"))
 
 	if _status == "printing" and not job.is_empty():
-		printer.set_print("printing", progress, icon, color)
+		printer.set_print("printing", progress, icon, color, material)
 	elif _status == "failed" and not job.is_empty():
 		# A failed print leaves the ruined part on the plate until it is cleared.
-		printer.set_print("failed", Val.field(job, "failedAt", 0.4), icon, color)
+		printer.set_print("failed", Val.field(job, "failedAt", 0.4), icon, color, material)
 	else:
-		printer.set_print(_status, 0.0, icon, color)
+		printer.set_print(_status, 0.0, icon, color, material)
 
 	bubble.call("show_status", _status, progress, job, _health)
 	queue_redraw()

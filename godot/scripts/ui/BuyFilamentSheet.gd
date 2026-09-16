@@ -118,7 +118,7 @@ func _summary() -> Control:
 	var card := UiKit.card(12, Palette.SAND)
 	var row := UiKit.hbox(10)
 	card.add_child(row)
-	row.add_child(SpoolDisc.new(Palette.filament(_color_id), 1.0))
+	row.add_child(SpoolDisc.new(Palette.filament(_color_id), 1.0, _material_id))
 	var info := UiKit.vbox(2)
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.add_child(UiKit.label("%s · %s" % [
