@@ -115,6 +115,37 @@ Growing the workshop grows the room:
 
 ---
 
+## The five boards
+
+The farm is the game; the other four screens are how the player acts on it.
+Each is built from one design system (`scripts/ui/UiKit.gd`) so they read as
+parts of one game rather than four menus, and each is organised around a
+decision rather than around a table of rows.
+
+| | what it is for |
+|---|---|
+| **Farm** | The workshop. Tap a station for the machine, the rack for stock, the bench for whatever most needs a service. |
+| **Orders** | A task board grouped by what has to happen next: collect what is finished, chase what has no machine on it, watch what is running, answer the rest. Finished work collects in one tap. |
+| **Shop** | The products the workshop makes for its own store, with cost, price, margin and how demand is moving. The store sells while the player is away. |
+| **Inventory** | Filament by material and by spool, the finished goods on the shelf and what they are worth, spare parts. |
+| **Upgrades** | Bought for one machine, so the machine is on the screen: its wear, its hours, and how many of its slots are gone. Each upgrade states its effect in numbers, off its own effects table. |
+
+Everything a machine can have done to it — service, repair, clear a failed
+plate, move it to another station, sell it, reorder its queue — is on the
+printer sheet, which is what a station tap opens.
+
+### Three languages
+
+English, Arabic and Kurdish, the latter two right-to-left. The UI mirrors;
+the isometric farm never does, because a workshop does not have a reading
+direction. Catalogue names — products, colours, upgrades, parts, failures —
+are looked up by id with the server's English name as the fallback, so a
+product added on the server appears immediately and is translated when
+someone writes the other two. Numbers are pinned left to right in every
+language, which is how all three of them write a number.
+
+---
+
 ## Server authority
 
 The client cannot give itself anything. There is exactly one write endpoint:
@@ -212,18 +243,27 @@ it.
 
 ### What is a sprite and what is still drawn
 
-A machine's **shell** is a sprite — one for the open-frame bed slingers, one
-for the enclosed chambers, tinted with the model's skin colour, so six shell
-colours across two families cost two textures rather than twelve. An enclosed
+A machine's **shell** is a sprite, one per family — the open-frame bed
+slinger, the plain enclosed box, the one with the camera, the big vented
+one — tinted with the model's skin colour, so every shell colour in the
+catalogue costs four textures rather than one per machine. An enclosed
 machine is two sprites, a chamber and its front pane, because the print has to
-be seen rising *through* the door.
+be seen rising *through* the door. How large a model is drawn comes from the
+build volume the shop quotes, so an A1 mini is visibly a small machine
+standing beside an H2C.
+
+A **spool** is two sprites as well: the body, tinted with the filament's
+colour, and the reel in front of it, tinted with the material's. The reel
+comes in three shapes — a thin clear one for commodity filament, a moulded
+one with spokes, a heavy ribbed one for engineering plastics — because nine
+colours are easy to tell apart at twenty pixels and eight materials are not.
+Which reel a material ships on is read off its unlock level, so one added to
+the catalogue arrives with one. Four textures, not seventy-two.
 
 Everything that shows live state is still drawn by hand, because a sprite
 cannot say it: the part appearing layer by layer, the head sweeping the
-gantry, the status lamp, and the spool colour — which is the filament the
-server says is threaded, not a colour baked into the machine. The spool model
-bakes white for exactly that reason: one texture serves all nine filament
-colours and every fill level, on the rack and on the machine alike.
+gantry, the status lamp, and what is actually threaded on the machine right
+now — which is what the server says, not a colour baked into the model.
 
 Which models are used, and at what size, is entirely
 `godot/tools/prop_recipes.json`. Two scales matter:
@@ -240,13 +280,13 @@ Sprites are baked at 2× and drawn with mipmaps, so they stay sharp when the
 player pinches in and quiet when a 6×6 farm is framed whole.
 
 The source models are excluded from every export preset, and the whole of the
-workshop's furniture is **23 textures, 206 KB** in the shipped pack. Verified
-on a real `npm run game:export:web`:
+workshop's furniture and machines is **30 textures, 150 KB** in the shipped
+pack. Verified on a real `npm run game:export:web`:
 
 ```
 $ strings client/web/index.pck | grep -c kaykit      0
 $ strings client/web/index.pck | grep -c '\.gltf'     0
-$ du -h client/web/index.pck                         924K   (the whole game)
+$ du -h client/web/index.pck                         992K   (the whole game)
 ```
 
 No mesh, no material and no 3D renderer reaches the device.

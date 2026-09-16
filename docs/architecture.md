@@ -96,12 +96,15 @@ built as geometry in `tools/PropModels.gd`. Both go through the same bake:
 to this game's exact projection. What ships is a folder of small PNGs. No mesh,
 no material and no 3D renderer reaches the device.
 
-A machine's shell is a sprite tinted by its skin, so the fleet costs two
-textures; an enclosed machine is two, a chamber and its front pane, so the
-print can be seen rising through the door. Models declare **mount points** —
-the build plate, the spool arm, the AMS lid — which the bake measures and
-ships in the catalogue, so the code that puts a print on a plate never has to
-know the shape of the machine under it.
+A machine's shell is a sprite tinted by its skin, one per printer family, so
+the fleet costs four textures rather than one per model; an enclosed machine
+is two, a chamber and its front pane, so the print can be seen rising through
+the door. A spool is two as well — a body in the filament's colour and a reel
+in the material's, in one of three reel shapes, which is what tells eight
+materials apart at the twenty pixels a rack spool occupies. Models declare
+**mount points** — the build plate, the spool arm, the AMS lid — which the
+bake measures and ships in the catalogue, so the code that puts a print on a
+plate never has to know the shape of the machine under it.
 
 Both halves therefore share one vanishing point and one grid, and a hand-drawn
 printer standing on a modelled table is in the same perspective as the table.
@@ -123,7 +126,7 @@ printer standing on a modelled table is in the same perspective as the table.
 Individual textures, not one packed sheet. Props are baked at twice their
 on-screen size and drawn with mipmaps so they survive the camera's zoom range;
 mipmapping an atlas bleeds neighbouring sprites into each other at the smaller
-levels. Twenty textures is well inside what 2D batching handles, and the whole
+levels. Thirty textures is well inside what 2D batching handles, and the whole
 set is smaller than a single atlas page would be.
 
 Printed parts are a stack of thin isometric slabs, and only the layers printed
@@ -142,9 +145,9 @@ without slicing anything.
 - A prop is one texture however many times it is drawn, and props are drawn
   inside the `_draw()` that was already running, so the furniture added no
   nodes and no extra redraws.
-- One white spool texture serves nine filament colours at every fill level, on
-  the rack and on the machines, by being tinted and scaled rather than
-  re-baked.
+- Four spool textures — one body and three reels — serve nine filament colours
+  times eight materials at every fill level, on the rack and on the machines,
+  by being tinted and scaled rather than re-baked.
 
 Measured, rather than assumed. A 6x6 workshop with all thirty-six stations
 bought, rendered on a software rasteriser at 390x844, 900 frames:
