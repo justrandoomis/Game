@@ -286,7 +286,7 @@ pack. Verified on a real `npm run game:export:web`:
 ```
 $ strings client/web/index.pck | grep -c kaykit      0
 $ strings client/web/index.pck | grep -c '\.gltf'     0
-$ du -h client/web/index.pck                         992K   (the whole game)
+$ du -h client/web/index.pck                         1.1M   (the whole game)
 ```
 
 No mesh, no material and no 3D renderer reaches the device.
