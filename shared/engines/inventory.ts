@@ -20,6 +20,20 @@ export function pickSpool(
   return exact[0];
 }
 
+/**
+ * The most grams a single spool of this material and colour holds.
+ *
+ * A print draws from one spool — pickSpool() takes the fullest that covers the
+ * whole job — so this, not the total on the rack, is what decides whether a
+ * print can start. Four full spools are 4000 g of filament and still cannot
+ * run a 1200 g job.
+ */
+export function largestSpool(spools: Spool[], materialId: string, colorId: string): number {
+  return spools
+    .filter((s) => s.materialId === materialId && s.colorId === colorId)
+    .reduce((max, s) => Math.max(max, s.grams), 0);
+}
+
 /** Grams of the right material+colour on hand, and how many are missing. */
 export function stockCheck(
   spools: Spool[],

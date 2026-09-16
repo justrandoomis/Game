@@ -20,7 +20,7 @@ import {
   product,
 } from './derive';
 import { printerResale, slotCost, slotLevel, spoolPrice } from './economy';
-import { pickSpool, refund, reserve, stockCheck, addSpool } from './inventory';
+import { addSpool, largestSpool, pickSpool, refund, reserve } from './inventory';
 import { planAssignment, acceptedCapacity, orderDeadlineMs } from './jobEngine';
 import { applyReputation } from './reputation';
 import { availableActions } from './maintenance';
@@ -312,9 +312,18 @@ export function assignOrder(
   const plan = planAssignment(config, order, printers, outstanding);
   if (!plan.length) return fail('assignment_failed');
 
-  const totalGrams = plan.reduce((sum, a) => sum + a.grams, 0);
-  const stock = stockCheck(state.spools, order.materialId, order.colorId, totalGrams);
-  if (!stock.ok) return { ok: false, error: 'not_enough_filament', fx: { kind: 'missing', value: stock.missing } };
+  // Each leg is loaded from one spool, so the binding constraint is the
+  // biggest leg against the fullest spool — not the total against the rack.
+  // Checking the total said yes to jobs the reserve loop below then refused.
+  const biggestLeg = plan.reduce((max, a) => Math.max(max, a.grams), 0);
+  const fullest = largestSpool(state.spools, order.materialId, order.colorId);
+  if (fullest < biggestLeg) {
+    return {
+      ok: false,
+      error: 'not_enough_filament',
+      fx: { kind: 'missing', value: Math.ceil(biggestLeg - fullest) },
+    };
+  }
 
   const created: Job[] = [];
   for (const a of plan) {
@@ -408,8 +417,15 @@ export function startStoreJob(
   const grams = estimateGrams(config, printer, productId, units);
   const spool = pickSpool(state.spools, materialId, colorId, grams);
   if (!spool) {
-    const stock = stockCheck(state.spools, materialId, colorId, grams);
-    return { ok: false, error: 'not_enough_filament', fx: { kind: 'missing', value: stock.missing } };
+    // A job is loaded from one spool. Reporting the shortfall against the
+    // fullest spool rather than against the whole rack is what makes the
+    // number the client shows match the reason the print was refused.
+    const best = largestSpool(state.spools, materialId, colorId);
+    return {
+      ok: false,
+      error: 'not_enough_filament',
+      fx: { kind: 'missing', value: Math.max(0, grams - best) },
+    };
   }
   if (!reserve(state, spool.id, grams)) return fail('reserve_failed');
 

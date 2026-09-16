@@ -252,6 +252,35 @@ func grams_available(material_id: String, color_id: String = "") -> float:
 	return total
 
 
+## The most grams a single spool of this material and colour holds.
+##
+## Mirrors largestSpool() on the server, and it is the number that decides
+## whether a print can start: a job is loaded from one spool, so four full
+## spools are four kilos of filament and still cannot run a 1200 g print.
+func largest_spool(material_id: String, color_id: String) -> float:
+	var best := 0.0
+	for s in spools():
+		if String(s.get("materialId", "")) != material_id:
+			continue
+		if String(s.get("colorId", "")) != color_id:
+			continue
+		best = maxf(best, float(s.get("grams", 0.0)))
+	return best
+
+
+## How long a machine is busy for before it could start anything new: what is
+## running now plus everything already queued behind it.
+func queue_ms(printer_id: String) -> int:
+	var total := 0
+	for job in queued_jobs(printer_id):
+		var duration := int(job.get("durationMs", 0))
+		if String(job.get("status", "")) == "printing":
+			total += ServerClock.remaining(Val.field_int(job, "startedAt", 0) + duration)
+		else:
+			total += duration
+	return maxi(0, total)
+
+
 ## Machines that are free to take work right now.
 func idle_printers() -> Array:
 	return printers().filter(func(p): return String(p.get("status", "")) == "idle")

@@ -150,7 +150,7 @@ func _plan(order: Dictionary) -> Array:
 	for printer in chosen:
 		var model := Config.printer_model(String(printer.get("modelId", "")))
 		var unit_ms: float = float(product.get("minutes", 1)) * 60000.0 \
-			* float(model.get("speed", 1.0)) * float(material.get("timeFactor", 1.0))
+			* Config.effective_speed(printer) * float(material.get("timeFactor", 1.0))
 		rates.append(0.0 if unit_ms <= 0.0 else 1.0 / unit_ms)
 
 	var total_rate: float = 0.0
@@ -189,9 +189,15 @@ func _plan(order: Dictionary) -> Array:
 		plan.append({
 			"printer": printer,
 			"qty": units,
+			# Speed and purge waste both move with what is fitted to the machine,
+			# so a split preview that used the bare model numbers quoted a time
+			# and a weight the server would not agree with.
 			"durationMs": int(float(product.get("minutes", 1)) * 60000.0 * float(units)
-				* float(model.get("speed", 1.0)) * float(material.get("timeFactor", 1.0))),
-			"grams": int(ceil(float(product.get("grams", 0)) * float(units) * 1.04)),
+				* Config.effective_speed(printer) * float(material.get("timeFactor", 1.0))),
+			"grams": int(ceil(
+				float(product.get("grams", 0)) * float(units)
+				* (1.0 + Config.material_waste(printer))
+			)),
 		})
 	return plan
 
@@ -218,16 +224,26 @@ func _refresh_summary(order: Dictionary) -> void:
 		var text := UiKit.label("×%d" % int(entry["qty"]), UiKit.FONT_SMALL, Palette.INK)
 		text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(text)
-		row.add_child(UiKit.caption(ServerClock.format_short(int(entry["durationMs"]))))
+		var waiting := GameState.queue_ms(String(entry["printer"].get("id", "")))
+		row.add_child(UiKit.caption(ServerClock.format_short(int(entry["durationMs"]) + waiting)))
 		split.add_child(row)
-		eta = maxi(eta, int(entry["durationMs"]))
+		# The order is done when the slowest leg is — including the work each
+		# machine has to get through before it starts this one.
+		eta = maxi(eta, int(entry["durationMs"]) + waiting)
 		grams += int(entry["grams"])
 	_summary.add_child(split)
 
-	var available := GameState.grams_available(
-		String(order.get("materialId", "")), String(order.get("colorId", ""))
-	)
-	var missing: int = maxi(0, grams - int(available))
+	var material_id := String(order.get("materialId", ""))
+	var color_id := String(order.get("colorId", ""))
+	var available := GameState.grams_available(material_id, color_id)
+	# Each leg is loaded from one spool, so the binding constraint is the
+	# biggest leg against the fullest spool rather than the total on the rack —
+	# which is what the server reserves against, and used to disagree.
+	var biggest := 0
+	for entry in plan:
+		biggest = maxi(biggest, int(entry["grams"]))
+	var fullest := int(GameState.largest_spool(material_id, color_id))
+	var missing: int = maxi(maxi(0, grams - int(available)), maxi(0, biggest - fullest))
 
 	var card := UiKit.card(12, Palette.SAND if missing == 0 else Color(0.99, 0.90, 0.88))
 	var column := UiKit.vbox(6)
@@ -243,11 +259,18 @@ func _refresh_summary(order: Dictionary) -> void:
 	_summary.add_child(card)
 
 	if missing > 0:
-		var buy := UiKit.button(I18n.t("buy_filament"), "warm", true)
-		buy.pressed.connect(func():
-			close_sheet()
-			Events.navigate.emit("inventory"))
-		_summary.add_child(buy)
+		if int(available) >= grams:
+			# Enough filament, just not on one spool — buying more will not fix
+			# it, so say what the problem actually is.
+			var note := UiKit.caption(I18n.t("one_spool_only"), Palette.CORAL_DEEP)
+			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			column.add_child(note)
+		else:
+			var buy := UiKit.button(I18n.t("buy_filament"), "warm", true)
+			buy.pressed.connect(func():
+				close_sheet()
+				Events.navigate.emit("buy_filament:%s:%s" % [material_id, color_id]))
+			_summary.add_child(buy)
 	_confirm.disabled = missing > 0
 
 

@@ -134,6 +134,27 @@ func health_thresholds() -> Dictionary:
 	return data.get("maintenance", {}).get("thresholds", {"good": 100, "service": 70, "warning": 40, "critical": 20})
 
 
+## A machine's speed with everything fitted to it. Mirrors effectiveStats()
+## on the server, which is what the print time is actually worked out from.
+func effective_speed(printer: Dictionary) -> float:
+	var speed := float(printer_model(String(printer.get("modelId", ""))).get("speed", 1.0))
+	for id in printer.get("upgrades", []):
+		var effects: Dictionary = upgrade(String(id)).get("effects", {})
+		if effects.has("speed"):
+			speed *= 1.0 + float(effects["speed"])
+	return maxf(0.15, speed)
+
+
+## Purge waste as a fraction, with the machine's upgrades applied. Same source.
+func material_waste(printer: Dictionary) -> float:
+	var waste := float(data.get("materials", {}).get("wasteFactor", 0.04))
+	for id in printer.get("upgrades", []):
+		var effects: Dictionary = upgrade(String(id)).get("effects", {})
+		if effects.has("materialWaste"):
+			waste *= 1.0 + float(effects["materialWaste"])
+	return maxf(0.0, waste)
+
+
 ## What an order pays when it is delivered after its deadline, as a fraction
 ## of the reward. A quote for the card, not the payment: the server works out
 ## what actually lands, from this same number.

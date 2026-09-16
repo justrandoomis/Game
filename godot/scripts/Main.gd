@@ -220,8 +220,13 @@ func _on_navigate(target: String) -> void:
 	if target.begins_with("printer:"):
 		_open_sheet(PrinterSheetScript).open(target.substr(8))
 		return
-	if target == "buy_filament":
-		_open_sheet(BuyFilamentSheetScript).open()
+	if target.begins_with("buy_filament"):
+		# "buy_filament" opens on whatever the sheet remembers; a screen that
+		# knows what the player is short of says so — "buy_filament:pla:green".
+		var parts := target.split(":")
+		_open_sheet(BuyFilamentSheetScript).open(
+			parts[1] if parts.size() > 1 else "", parts[2] if parts.size() > 2 else ""
+		)
 		return
 	if target == "settings":
 		_open_settings()
