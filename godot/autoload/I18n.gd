@@ -249,6 +249,9 @@ const STRINGS := {
 		"after_queue": "after the queue",
 		"queue_depth": "Queue %d",
 		"no_filament_yet": "You have no filament in this material yet",
+		"ready_at": "Back in",
+		"cancel_print": "Cancel this print?",
+		"cancel_print_hint": "Only the filament not yet printed comes back.",
 		"stations": "Stations", "grams": "g", "hours": "h",
 	},
 	"ar": {
@@ -483,6 +486,9 @@ const STRINGS := {
 		"after_queue": "بعد الطابور",
 		"queue_depth": "الطابور %d",
 		"no_filament_yet": "لا تملك فيلامنت من هذه المادة بعد",
+		"ready_at": "يعود بعد",
+		"cancel_print": "إلغاء هذه الطبعة؟",
+		"cancel_print_hint": "يُسترجع الفيلامنت غير المطبوع فقط.",
 		"stations": "المحطات", "grams": "غ", "hours": "س",
 	},
 	"ku": {
@@ -717,6 +723,9 @@ const STRINGS := {
 		"after_queue": "دوای ڕیز",
 		"queue_depth": "ڕیز %d",
 		"no_filament_yet": "هێشتا فیلامێنتی ئەم ماددەیەت نییە",
+		"ready_at": "دەگەڕێتەوە لە",
+		"cancel_print": "ئەم چاپە هەڵبوەشێنرێتەوە؟",
+		"cancel_print_hint": "تەنها ئەو فیلامێنتەی چاپ نەکراوە دەگەڕێتەوە.",
 		"stations": "وێستگەکان", "grams": "گ", "hours": "کات",
 	},
 }
@@ -781,7 +790,11 @@ func tf(key: String, args: Array) -> String:
 ## either, and this is the smallest thing that fixes both.
 func tn(key: String, count: int) -> String:
 	var singular := key + "_one"
-	return tf(singular if count == 1 and _known(singular) else key, [count])
+	var chosen := singular if count == 1 and _known(singular) else key
+	var text := t(chosen)
+	# A singular form usually spells the number out — "1 spool" is "بكرة
+	# واحدة" — so it carries no placeholder to substitute into.
+	return text % count if text.contains("%") else text
 
 
 ## The player-facing name of a catalogue entry.

@@ -28,7 +28,9 @@ func _ready() -> void:
 
 
 func _build() -> void:
-	var safe_bottom: float = maxf(DisplayServer.get_display_safe_area().position.y * 0.0, 0.0)
+	# Room for the home indicator, so the labels are not sitting under it. The
+	# multiply-by-zero this replaced meant the inset was never applied at all.
+	var safe_bottom: float = float(UiKit.safe_insets(self)["bottom"])
 	custom_minimum_size = Vector2(0, 74.0 + safe_bottom)
 
 	var panel := PanelContainer.new()

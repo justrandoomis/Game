@@ -1,7 +1,59 @@
-[gd_resource type="Theme" load_steps=2 format=3]
+[gd_resource type="Theme" load_steps=8 format=3]
 
+; Cairo carries the UI. It does not carry the five Sorani letters — ڕ ڵ ۆ ێ ە —
+; that all but a handful of the Kurdish strings need, and a Web export has no
+; system font to fall back on, so Noto Sans Arabic is shipped for them. Its
+; Arabic subset is 48 KB and supplies only the glyphs Cairo is missing.
 [ext_resource type="FontFile" path="res://assets/fonts/Cairo.ttf" id="1_font"]
+[ext_resource type="FontFile" path="res://assets/fonts/NotoSansArabic.woff2" id="2_fallback"]
+
+[sub_resource type="FontVariation" id="FontVariation_ui"]
+base_font = ExtResource("1_font")
+fallbacks = Array[Font]([ExtResource("2_fallback")])
+
+; Scrollbars. Godot's defaults are a grey slab with square ends against the
+; right edge of every card — the one piece of the UI that was never styled.
+; These are the palette's own line and faint-ink tones, as narrow pills.
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_track"]
+content_margin_left = 3.0
+content_margin_right = 3.0
+content_margin_top = 3.0
+content_margin_bottom = 3.0
+bg_color = Color(0.157, 0.204, 0.263, 0.05)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_grabber"]
+bg_color = Color(0.157, 0.204, 0.263, 0.22)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_grabber_hi"]
+bg_color = Color(0.157, 0.204, 0.263, 0.34)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_grabber_pressed"]
+bg_color = Color(0.157, 0.204, 0.263, 0.44)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [resource]
-default_font = ExtResource("1_font")
+default_font = SubResource("FontVariation_ui")
 default_font_size = 15
+HScrollBar/styles/grabber = SubResource("StyleBoxFlat_grabber")
+HScrollBar/styles/grabber_highlight = SubResource("StyleBoxFlat_grabber_hi")
+HScrollBar/styles/grabber_pressed = SubResource("StyleBoxFlat_grabber_pressed")
+HScrollBar/styles/scroll = SubResource("StyleBoxFlat_track")
+VScrollBar/styles/grabber = SubResource("StyleBoxFlat_grabber")
+VScrollBar/styles/grabber_highlight = SubResource("StyleBoxFlat_grabber_hi")
+VScrollBar/styles/grabber_pressed = SubResource("StyleBoxFlat_grabber_pressed")
+VScrollBar/styles/scroll = SubResource("StyleBoxFlat_track")

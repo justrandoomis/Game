@@ -7,6 +7,7 @@ extends MarginContainer
 
 var _column: VBoxContainer
 var _selected_printer: String = ""
+var _active_tile: Control = null
 
 
 func _ready() -> void:
@@ -17,6 +18,16 @@ func _ready() -> void:
 	add_child(parts["scroll"])
 	GameState.state_changed.connect(rebuild)
 	I18n.language_changed.connect(func(_lang): rebuild())
+	rebuild()
+
+
+## Open the board on a particular machine. The printer sheet uses this, so
+## "fit an upgrade to this one" means this one and not whichever the board
+## happened to be showing.
+func select_printer(next_printer_id: String) -> void:
+	if GameState.printer_by_id(next_printer_id).is_empty():
+		return
+	_selected_printer = next_printer_id
 	rebuild()
 
 
@@ -94,8 +105,13 @@ func _machine_card(
 	head.add_child(UiKit.icon("printer", Palette.SKY_DEEP, 24.0))
 	var info := UiKit.vbox(1)
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info.add_child(UiKit.label("%s %s" % [
-		String(model.get("brand", "")), String(model.get("name", ""))
+	# The station, then the model. Half a fleet can share a model, so the name
+	# alone does not say which machine is about to be paid for.
+	var cell := Iso.parse_slot(Val.field_text(printer, "slotId"))
+	var tier := Config.workshop_tier(GameState.tier_index())
+	var station := Iso.slot_label(cell.x, cell.y, int(tier.get("cols", 2))) if cell.x >= 0 else ""
+	info.add_child(UiKit.label("%s %s %s" % [
+		station, String(model.get("brand", "")), String(model.get("name", ""))
 	], UiKit.FONT_BODY, Palette.INK, true, true))
 	info.add_child(UiKit.caption("%.0f %s · %d %s" % [
 		float(printer.get("hours", 0.0)), I18n.t("hours"),
@@ -127,6 +143,7 @@ func _machine_card(
 func _printer_picker(printers: Array) -> Control:
 	var strip := UiKit.strip(76.0, 8)
 	var row: HBoxContainer = strip["row"]
+	_active_tile = null
 
 	var tier := Config.workshop_tier(GameState.tier_index())
 	for printer in printers:
@@ -162,7 +179,17 @@ func _printer_picker(printers: Array) -> Control:
 			_selected_printer = printer_id
 			rebuild())
 		row.add_child(button)
-	return strip["scroll"]
+		if active:
+			_active_tile = button
+	# Bring the selection into view. On a sixteen-machine fleet the strip
+	# opened on the first three tiles, so a board deep-linked from a printer
+	# sheet showed no highlighted tile at all.
+	var scroll: ScrollContainer = strip["scroll"]
+	if _active_tile != null:
+		scroll.ready.connect(func():
+			if is_instance_valid(_active_tile):
+				scroll.ensure_control_visible(_active_tile), CONNECT_ONE_SHOT)
+	return scroll
 
 
 func _upgrade_card(upgrade: Dictionary, installed: Array, slots: int) -> Control:

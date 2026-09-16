@@ -301,23 +301,32 @@ static func screen_scroll(bottom_padding: float = 108.0) -> Dictionary:
 	margin.add_theme_constant_override("margin_top", GAP_MD)
 	margin.add_theme_constant_override("margin_bottom", int(bottom_padding))
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.add_child(margin)
 
 	var column := vbox(GAP_MD)
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Vertical fill as well, so a screen whose only content is an empty state
+	# can centre it in the viewport instead of stacking it under the HUD.
+	column.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	margin.add_child(column)
 
 	return {"scroll": scroll, "column": column}
 
 
 ## An empty state, so a screen with nothing in it still says something useful.
+##
+## It fills the height it is given and centres itself in it. Left to its own
+## minimum size it sat just under the HUD with two thirds of the screen as
+## blank sky underneath — which, on a tab that stays locked for fourteen
+## levels, is most of what the player sees of it.
 static func empty_state(icon_name: String, title_text: String, hint: String) -> Control:
 	var column := vbox(GAP_SM)
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	column.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
 	var glyph := icon(icon_name, Palette.INK_FAINT, 52.0)
 	glyph.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	column.add_child(vspace(28.0))
 	column.add_child(glyph)
 
 	var heading := label(title_text, FONT_BODY, Palette.INK_SOFT, true)
@@ -329,6 +338,32 @@ static func empty_state(icon_name: String, title_text: String, hint: String) -> 
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(sub)
 	return column
+
+
+## The insets the device's own chrome takes out of the screen — the notch at
+## the top, the home indicator at the bottom — in the units controls are laid
+## out in.
+##
+## DisplayServer reports physical pixels while the project stretches a 390x844
+## canvas over whatever the screen is, so the raw numbers mean nothing to a
+## Control until they are divided by that stretch. And the safe area is the
+## display's, not the window's: on a desktop that is the usable desktop rect,
+## which would read a taskbar as a home indicator. So this answers zero
+## anywhere but a phone, which is the only place it means anything.
+static func safe_insets(node: CanvasItem) -> Dictionary:
+	var none := {"top": 0.0, "bottom": 0.0}
+	if not OS.has_feature("mobile"):
+		return none
+	var screen := DisplayServer.screen_get_size()
+	var logical := node.get_viewport_rect().size
+	if screen.y <= 0 or logical.y <= 0.0:
+		return none
+	var safe := DisplayServer.get_display_safe_area()
+	var stretch: float = maxf(0.01, float(screen.y) / logical.y)
+	return {
+		"top": maxf(0.0, float(safe.position.y)) / stretch,
+		"bottom": maxf(0.0, float(screen.y - (safe.position.y + safe.size.y))) / stretch,
+	}
 
 
 ## Colour a coin figure by whether the player can actually afford it.

@@ -17,12 +17,23 @@ var _xp_label: Label
 var _coins_label: Label
 var _rep_label: Label
 var _coin_anchor: Control
+## How much of the top of the screen belongs to the device, not the game.
+var _safe_top: float = 0.0
+
+
+## The height the HUD occupies, so the screens below it start under it rather
+## than at a number typed into the scene.
+func chrome_height() -> float:
+	return 62.0 + _safe_top
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_TOP_WIDE)
-	custom_minimum_size = Vector2(0, 62.0)
+	# Clear of the notch. The HUD is pinned to the top of the screen, which on
+	# a phone is behind the status bar unless it makes room for it.
+	_safe_top = float(UiKit.safe_insets(self)["top"])
+	custom_minimum_size = Vector2(0, 62.0 + _safe_top)
 	_build()
 	GameState.state_changed.connect(refresh)
 	I18n.language_changed.connect(func(_lang): _apply_direction(); refresh())

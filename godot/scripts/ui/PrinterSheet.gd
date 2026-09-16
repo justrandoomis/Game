@@ -60,9 +60,13 @@ func _status_section(printer: Dictionary) -> Control:
 	var head := UiKit.hbox(8)
 	head.add_child(UiKit.pill(I18n.t(status), Palette.status(status)))
 	head.add_child(UiKit.spacer())
-	if status == "printing" and not job.is_empty():
+	# A print counts down, and so does a service — the machine is locked for a
+	# known length of time either way, and a repair locks it for fifteen
+	# minutes that nothing on screen used to mention.
+	if (status == "printing" and not job.is_empty()) or status == "maintenance":
 		_remaining_label = UiKit.label("", UiKit.FONT_SMALL, Palette.INK_SOFT)
 		head.add_child(_remaining_label)
+		_refresh_remaining(printer)
 	column.add_child(head)
 
 	if job.is_empty():
@@ -176,12 +180,15 @@ func _queue_section(printer: Dictionary) -> Control:
 	for i in jobs.size():
 		var job: Dictionary = jobs[i]
 		var product := Config.product(String(job.get("productId", "")))
+		# The pill is the job's own status, not its position. Reading it off the
+		# index labelled a failed print "Printing" in blue, on the same sheet
+		# that says "Print failed" two cards above it.
+		var job_status := String(job.get("status", "queued"))
 		var row := UiKit.hbox(8)
-		row.add_child(UiKit.pill(
-			I18n.t("printing") if i == 0 else "%d" % (i + 1),
-			Palette.SKY_DEEP if i == 0 else Palette.SAND,
-			Palette.PAPER if i == 0 else Palette.INK_SOFT
-		))
+		if i == 0 and job_status != "queued":
+			row.add_child(UiKit.pill(I18n.t(job_status), Palette.status(job_status)))
+		else:
+			row.add_child(UiKit.pill("%d" % (i + 1), Palette.SAND, Palette.INK_SOFT))
 		var name_label := UiKit.label(
 			"%s ×%d" % [I18n.name_of("product", product), int(job.get("qty", 1))],
 			UiKit.FONT_SMALL, Palette.INK
@@ -190,18 +197,46 @@ func _queue_section(printer: Dictionary) -> Control:
 		row.add_child(name_label)
 		row.add_child(UiKit.caption(ServerClock.format_short(int(job.get("durationMs", 0)))))
 
-		# Anything not already running can be moved up the queue or pulled back
-		# out of it. The head is printing, so it cannot be reshuffled underneath
-		# itself — the server refuses that, and so does this.
-		if i > 0 or String(job.get("status", "")) == "queued":
-			var job_id := String(job.get("id", ""))
+		# Anything can be pulled out of the queue, the running print included —
+		# the server refunds the filament it has not laid down yet. Only the
+		# reordering is restricted: the head is printing, so it cannot be
+		# shuffled underneath itself.
+		var job_id := String(job.get("id", ""))
+		if job_status != "done" and job_status != "collected":
 			if i > 1 or (i == 1 and String(jobs[0].get("status", "")) != "printing"):
 				row.add_child(_queue_button("arrow_up", I18n.t("move_up"),
 					func(): _promote(jobs, i)))
-			row.add_child(_queue_button("close", I18n.t("cancel"),
-				func(): _send("cancel_job", {"jobId": job_id})))
+			if job_status == "printing":
+				# Throwing away a print in progress is worth a second tap.
+				row.add_child(_queue_button("close", I18n.t("cancel"),
+					func(): _confirm_cancel(job_id)))
+			else:
+				row.add_child(_queue_button("close", I18n.t("cancel"),
+					func(): _send("cancel_job", {"jobId": job_id})))
 		column.add_child(row)
 	return card
+
+
+## Cancelling a print that is already running loses the filament already laid
+## down, so the sheet says so before it happens.
+func _confirm_cancel(job_id: String) -> void:
+	for child in content().get_children():
+		child.queue_free()
+	add_header(I18n.t("cancel_print"), I18n.t("queue"))
+
+	var card := UiKit.card(12, Palette.SAND)
+	var hint := UiKit.caption(I18n.t("cancel_print_hint"), Palette.INK_SOFT)
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	card.add_child(hint)
+	content().add_child(card)
+
+	var confirm := UiKit.button(I18n.t("confirm"), "danger", true)
+	confirm.pressed.connect(func(): _send("cancel_job", {"jobId": job_id}))
+	content().add_child(confirm)
+	var back := UiKit.button(I18n.t("close"), "ghost", true)
+	back.pressed.connect(_rebuild)
+	content().add_child(back)
+	refit()
 
 
 func _queue_button(glyph_name: String, hint: String, on_press: Callable) -> Control:
@@ -277,7 +312,9 @@ func _actions_section(printer: Dictionary) -> Control:
 		var upgrades := UiKit.button(I18n.t("upgrades"), "ghost", true)
 		upgrades.pressed.connect(func():
 			close_sheet()
-			Events.navigate.emit("upgrades"))
+			# With the machine, not just the board: a fleet of sixteen where
+			# half share a model made "fit this to that one" a coin toss.
+			Events.navigate.emit("upgrades:" + printer_id))
 		minor.add_child(upgrades)
 
 	var move := UiKit.button(I18n.t("move"), "ghost", true)
@@ -443,14 +480,33 @@ func _send(intent: String, payload: Dictionary) -> void:
 
 ## Called once a second by Main so the countdown ticks without a full rebuild.
 func tick() -> void:
+	var printer := GameState.printer_by_id(printer_id)
+	if printer.is_empty():
+		return
+	var job := GameState.active_job(printer_id)
+	if _progress_bar != null and is_instance_valid(_progress_bar) and not job.is_empty():
+		_progress_bar.value = ServerClock.progress(
+			Val.field_int(job, "startedAt", 0), int(job.get("durationMs", 0))
+		)
+	_refresh_remaining(printer)
+
+
+## The one line that says how long this machine is busy for, whether it is
+## printing or being serviced.
+func _refresh_remaining(printer: Dictionary) -> void:
+	if _remaining_label == null or not is_instance_valid(_remaining_label):
+		return
+	if String(printer.get("status", "")) == "maintenance":
+		var until := Val.field_int(printer, "maintenanceUntil", 0)
+		_remaining_label.text = "%s %s" % [
+			I18n.t("ready_at"), ServerClock.format_duration(ServerClock.remaining(until))
+		] if until > 0 else ""
+		return
 	var job := GameState.active_job(printer_id)
 	if job.is_empty():
+		_remaining_label.text = ""
 		return
-	var started := Val.field_int(job, "startedAt", 0)
-	var duration := int(job.get("durationMs", 0))
-	if _progress_bar != null and is_instance_valid(_progress_bar):
-		_progress_bar.value = ServerClock.progress(started, duration)
-	if _remaining_label != null and is_instance_valid(_remaining_label):
-		_remaining_label.text = "%s %s" % [
-			I18n.t("remaining"), ServerClock.format_duration(ServerClock.remaining(started + duration))
-		]
+	var ends := Val.field_int(job, "startedAt", 0) + int(job.get("durationMs", 0))
+	_remaining_label.text = "%s %s" % [
+		I18n.t("remaining"), ServerClock.format_duration(ServerClock.remaining(ends))
+	]

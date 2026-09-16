@@ -51,6 +51,9 @@ func _ready() -> void:
 	Net.unauthorized.connect(_on_unauthorized)
 	I18n.language_changed.connect(func(_lang): UiKit.apply_direction(screens))
 
+	# The screens start under the HUD, whatever height the device's own chrome
+	# has pushed it to, rather than at a number typed into the scene.
+	screens.offset_top = hud.call("chrome_height")
 	_show_screen("farm")
 	_boot()
 
@@ -199,7 +202,9 @@ func _show_screen(id: String) -> void:
 	farm.visible = id == "farm"
 	farm.process_mode = Node.PROCESS_MODE_INHERIT if id == "farm" else Node.PROCESS_MODE_DISABLED
 	screens.visible = id != "farm"
-	tutorial.visible = id == "farm"
+	# The hint decides whether it has anything to say; this only decides where
+	# it may say it.
+	tutorial.visible = id == "farm" and tutorial.call("wants_display")
 	for key in _screens.keys():
 		_screens[key].visible = key == id
 	if id != "farm" and nav.current != id:
@@ -216,6 +221,13 @@ func _on_navigate(target: String) -> void:
 	if target.begins_with("produce:"):
 		var sheet: Control = _open_sheet(ProduceSheetScript)
 		sheet.open(target.substr(8))
+		return
+	if target.begins_with("upgrades:"):
+		# A screen can ask for a board with a machine already selected.
+		var screen: Control = _screens.get("upgrades", null)
+		if screen != null and screen.has_method("select_printer"):
+			screen.call("select_printer", target.substr(9))
+		_show_screen("upgrades")
 		return
 	if target.begins_with("printer:"):
 		_open_sheet(PrinterSheetScript).open(target.substr(8))

@@ -7,6 +7,8 @@ extends Control
 ## no blocking overlays.
 
 var _label: Label
+## Set by refresh(); read by Main before it shows the node.
+var _wanted: bool = false
 var _card: PanelContainer
 
 
@@ -47,6 +49,14 @@ func _build() -> void:
 	row.add_child(_label)
 
 
+## Whether this hint has anything to say. Main shows and hides the node with
+## the Farm tab, and used to do it without asking — so a player who had long
+## finished the tutorial got an empty navy slab above the navigation every time
+## they came back to the workshop, until the next snapshot arrived.
+func wants_display() -> bool:
+	return _wanted
+
+
 ## Which sentence applies is read straight off the farm.
 func refresh() -> void:
 	if not GameState.ready_state or _label == null:
@@ -54,6 +64,7 @@ func refresh() -> void:
 
 	var stats := GameState.stats()
 	if int(stats.get("ordersCompleted", 0)) > 0:
+		_wanted = false
 		visible = false
 		return
 
@@ -74,6 +85,7 @@ func refresh() -> void:
 	else:
 		key = "tutorial_1"
 
+	_wanted = true
 	visible = true
 	if _label.text != I18n.t(key):
 		_label.text = I18n.t(key)
