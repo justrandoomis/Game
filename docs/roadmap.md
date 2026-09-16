@@ -15,6 +15,9 @@ place for the rest. That is what this is.
 - Workshop furniture — tables, walls, shelving, crates, plants — modelled
   rather than drawn: KayKit low-poly models baked offline into sprites in the
   game's own projection (`godot/tools/BakeProps.gd`), so nothing 3D ships
+- The machines and the filament spools modelled too, built as geometry in
+  `godot/tools/PropModels.gd` because no pack contains either; open-frame and
+  enclosed shells tinted per skin, spools tinted per filament
 - Printing animation: sweeping printhead, part appearing layer by layer, status
   light, live countdown bubble
 - Workshop expands to a physically bigger room, five tiers

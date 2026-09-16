@@ -11,6 +11,7 @@ extends Node2D
 ## that came from the server; a baked sprite could not say that.
 
 const SHELF := "shelf"
+const SPOOL := "spool"
 ## The wall the rack is bolted to. Its height is what the stack has to fit in.
 const WALL := "wall_right"
 const SHELVES := 3
@@ -25,6 +26,10 @@ const BOTTOM := 6.0
 const SPOOL_LIFT := 8.0
 const SPOOL_RADIUS_MAX := 8.5
 const HEAD_ROOM := 4.0
+## The spool model bakes about 40 px across; a rack spool wants a third of that
+## when empty and a little over when full.
+const SPOOL_SCALE_MIN := 0.26
+const SPOOL_SCALE_GROW := 0.15
 
 ## The rack stands on a cell of the back walkway, but it is fixed to the wall
 ## behind that cell — half a tile up and to the right, which is where the
@@ -39,7 +44,7 @@ var _spools: Array = []
 
 ## Declared for the boot check — see PrinterStation.prop_ids().
 func prop_ids() -> PackedStringArray:
-	return PackedStringArray([SHELF, WALL])
+	return PackedStringArray([SHELF, WALL, SPOOL])
 
 
 func _ready() -> void:
@@ -81,7 +86,9 @@ func _draw() -> void:
 			float(spool.get("grams", 0.0)) / maxf(1.0, float(spool.get("capacity", 1000.0))),
 			0.05, 1.0
 		)
-		IsoDraw.spool(self, at, SPOOL_RADIUS_MAX - 3.0 + 3.0 * remaining, color)
+		# A fuller spool is a fatter spool, which is what a rack of them looks
+		# like and what makes "buy more filament" readable from across the room.
+		Props.draw(self, SPOOL, at, SPOOL_SCALE_MIN + SPOOL_SCALE_GROW * remaining, color)
 
 
 func _shelf_base(shelf: int) -> Vector2:

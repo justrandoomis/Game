@@ -9,7 +9,8 @@ const PERIOD := 2.6
 
 var _active: bool = false
 var _time: float = 0.0
-var _rest_y: float = -14.0
+## Measured from the build plate, which is where this node now sits.
+var _rest_y: float = 0.0
 
 
 func _ready() -> void:
@@ -19,7 +20,7 @@ func _ready() -> void:
 ## `height` is how far above the plate the head currently rides, which follows
 ## the layer being printed.
 func set_active(active: bool, height: float) -> void:
-	_rest_y = -14.0 - height
+	_rest_y = -height
 	position.y = _rest_y
 	if _active == active:
 		return

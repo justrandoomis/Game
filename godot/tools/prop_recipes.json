@@ -22,6 +22,14 @@
 		"wall": 26.163
 	},
 	"props": [
+		{ "id": "printer_open",  "build": "printer_open",                   "scale": "prop", "note": "open-frame bed slinger — the A-series machines",
+		  "mounts": { "plate": [0, 0.36, 0], "gantry": [0, 1.20, -0.26], "spool": [0, 1.57, -0.23], "ams": [0.98, 0, -0.20], "lamp": [0.50, 0.34, 0.44] } },
+		{ "id": "printer_case",  "build": "printer_case",                   "scale": "prop", "note": "enclosed chamber, drawn behind the print",
+		  "mounts": { "plate": [0, 0.36, 0], "gantry": [0, 1.19, -0.19], "ams": [0, 1.52, 0], "lamp": [0.54, 0.40, 0.58] } },
+		{ "id": "printer_glass", "build": "printer_glass",                  "scale": "prop", "note": "its front pane, drawn over the print" },
+		{ "id": "printer_ams",   "build": "printer_ams",                    "scale": "prop", "note": "multi-material unit, on the lid" },
+		{ "id": "spool",         "build": "spool",                          "scale": "prop", "note": "one white spool, tinted by whatever is wound on it" },
+
 		{ "id": "station_table", "src": "furniture/table_medium",           "scale": "prop", "note": "the printer workbench — one per station, every station identical" },
 
 		{ "id": "wall_right",    "src": "restaurant/wall",                  "scale": "wall", "yaw": 0,    "note": "back wall running lower-right, tiled one segment per cell" },

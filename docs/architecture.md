@@ -90,10 +90,18 @@ of printers in six shell colours costs one drawing routine.
 
 **Baked props**, in `assets/props/`. The furniture of the workshop — the work
 tables, the walls, the shelving, crates, plants, the rug — comes from KayKit
-low-poly models that `tools/BakeProps.gd` has already rendered, offline, from
-an orthographic camera set to this game's exact projection. What ships is a
-folder of small PNGs. No mesh, no material and no 3D renderer reaches the
-device.
+low-poly models, and the machines and filament spools, which no pack has, are
+built as geometry in `tools/PropModels.gd`. Both go through the same bake:
+`tools/BakeProps.gd` renders each one, offline, from an orthographic camera set
+to this game's exact projection. What ships is a folder of small PNGs. No mesh,
+no material and no 3D renderer reaches the device.
+
+A machine's shell is a sprite tinted by its skin, so the fleet costs two
+textures; an enclosed machine is two, a chamber and its front pane, so the
+print can be seen rising through the door. Models declare **mount points** —
+the build plate, the spool arm, the AMS lid — which the bake measures and
+ships in the catalogue, so the code that puts a print on a plate never has to
+know the shape of the machine under it.
 
 Both halves therefore share one vanishing point and one grid, and a hand-drawn
 printer standing on a modelled table is in the same perspective as the table.
@@ -134,6 +142,9 @@ without slicing anything.
 - A prop is one texture however many times it is drawn, and props are drawn
   inside the `_draw()` that was already running, so the furniture added no
   nodes and no extra redraws.
+- One white spool texture serves nine filament colours at every fill level, on
+  the rack and on the machines, by being tinted and scaled rather than
+  re-baked.
 
 Measured, rather than assumed. A 6x6 workshop with all thirty-six stations
 bought, rendered on a software rasteriser at 390x844, 900 frames:

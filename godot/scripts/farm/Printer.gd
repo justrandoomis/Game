@@ -1,26 +1,41 @@
 extends Node2D
 ## A printer standing on a station.
 ##
-## One drawing routine for the entire fleet: only the palette and the frame
-## form change between models, so every machine in the workshop shares the same
-## perspective and proportions no matter what the player buys.
+## The shell is a baked sprite — one for the open-frame machines, one for the
+## enclosed ones — tinted with the model's skin colour. Six shell colours across
+## two families therefore cost two textures rather than twelve, and every
+## machine in the workshop still shares one perspective and one set of
+## proportions. See tools/PropModels.gd for the geometry.
 ##
-## Local origin (0, 0) is where the machine meets the table top.
+## Everything that shows live state is still drawn by hand, because a sprite
+## cannot say it: the part rising off the plate layer by layer, the head
+## sweeping the gantry, the status lamp, and the spool — whose colour is the
+## filament the server says is actually threaded, not a colour baked into the
+## machine.
+##
+## Local origin (0, 0) is where the machine meets the table top. Everything
+## above it is positioned from the shell's own mount points, so changing a
+## proportion in PropModels moves the print, the nozzle and the spool with it.
 
-## Half-diagonals of the machine's base footprint.
-const BASE_HW := 36.0
-const BASE_HH := 18.0
-const BASE_H := 14.0
-## Build plate, sitting just above the base.
-const PLATE_HW := 28.0
-const PLATE_HH := 14.0
-const PLATE_Y := -BASE_H - 1.0
-## Frame height above the plate.
-const FRAME_H := 52.0
+const OPEN := "printer_open"
+const CASE := "printer_case"
+const GLASS := "printer_glass"
+const AMS := "printer_ams"
+const SPOOL := "spool"
+
+## Layer thickness on screen, for revealing the print.
 const LAYER_H := 3.4
+## Clearance the nozzle keeps above the top layer, and below the gantry.
+const NOZZLE_LIFT := 4.0
+const GANTRY_CLEAR := 8.0
+## The multi-material unit and the machine's own spool are drawn smaller than
+## the model bakes at — an AMS is a box beside a printer, not another printer.
+const AMS_SCALE := 0.62
+const ARM_SPOOL_SCALE := 0.50
 
 @onready var head: Node2D = $Head
 @onready var model_node: Node2D = $Model
+@onready var glass: Node2D = $Glass
 @onready var light: Node2D = $StatusLight
 
 var model_id: String = "a1_mini"
@@ -35,7 +50,13 @@ var _enclosed: bool = false
 var _shown_layers: int = -1
 
 
+## Declared for the boot check — see PrinterStation.prop_ids().
+func prop_ids() -> PackedStringArray:
+	return PackedStringArray([OPEN, CASE, GLASS, AMS, SPOOL])
+
+
 func _ready() -> void:
+	Props.prepare(self)
 	_apply_model()
 
 
@@ -55,12 +76,34 @@ func _apply_model() -> void:
 	_enclosed = family != "A-series"
 	if entry.has("multicolor") and bool(entry["multicolor"]):
 		has_ams = true
+	_place_parts()
+
+
+## Put the moving parts where this shell keeps them. A bed slinger and an
+## enclosed chamber hold their plate at the same height but not their gantry or
+## their lamp, and both come off the models rather than out of this file.
+func _place_parts() -> void:
+	# @onready assigns these just before _ready() runs, so this holds inside
+	# _ready() as well as on every later configure().
+	if head == null:
+		return
+	var shell := _shell()
+	var plate := Props.mount(shell, "plate")
+	model_node.position = plate
+	head.position = plate
+	light.position = Props.mount(shell, "lamp")
+	glass.call("set_enclosed", _enclosed, _skin["body"])
+
+
+func _shell() -> String:
+	return CASE if _enclosed else OPEN
 
 
 ## Update the live print. Only redraws the model when a layer actually lands,
 ## so a running printer costs one redraw every few seconds, not every frame.
 func set_print(next_status: String, next_progress: float, icon: String, color: Color) -> void:
 	var layers_before := _shown_layers
+	var color_before := filament_color
 	status = next_status
 	progress = clampf(next_progress, 0.0, 1.0)
 	product_icon = icon
@@ -76,100 +119,33 @@ func set_print(next_status: String, next_progress: float, icon: String, color: C
 		light.call("set_status", status)
 	if _shown_layers != layers_before and model_node.has_method("set_model"):
 		model_node.call("set_model", icon, color, progress)
+	# The spool on the arm is part of this node's own drawing, so a change of
+	# filament has to repaint it.
+	if color != color_before:
+		queue_redraw()
 
 
+## How far above the plate the nozzle rides: the layers printed so far, never
+## lower than the plate and never into the gantry.
 func _head_height() -> float:
 	if _shown_layers <= 0:
-		return 4.0
-	return clampf(float(_shown_layers) * LAYER_H + 4.0, 4.0, FRAME_H - 8.0)
+		return NOZZLE_LIFT
+	var shell := _shell()
+	var span := absf(Props.mount(shell, "gantry").y - Props.mount(shell, "plate").y)
+	return clampf(
+		float(_shown_layers) * LAYER_H + NOZZLE_LIFT, NOZZLE_LIFT, maxf(NOZZLE_LIFT, span - GANTRY_CLEAR)
+	)
 
 
 func _draw() -> void:
+	var shell := _shell()
 	var body: Color = _skin["body"]
-	var trim: Color = _skin["trim"]
+	Props.draw(self, shell, Vector2.ZERO, 1.0, body)
 
-	# --- base ---------------------------------------------------------------
-	IsoDraw.box(
-		self, Vector2.ZERO, BASE_HW, BASE_HH, BASE_H,
-		Palette.tint(body, 0.10), Palette.shade(body, 0.10), Palette.shade(body, 0.28)
-	)
-	# A dark front panel with a screen, so the machine reads as having a face
-	# rather than as a pale block against a pale floor.
-	IsoDraw.panel_right(self, Vector2(0, BASE_HH - 1.0), 20.0, 8.0, Palette.shade(trim, 0.10))
-	IsoDraw.panel_right(self, Vector2(4.0, BASE_HH - 5.0), 9.0, 4.5, Palette.SKY)
-	draw_circle(Vector2(18.0, -5.0), 1.8, Palette.GREEN)
-	# A grounding shadow line where the base meets the table.
-	draw_line(Vector2(-BASE_HW, 0), Vector2(0, BASE_HH), Palette.shade(trim, 0.25), 1.5)
-	draw_line(Vector2(0, BASE_HH), Vector2(BASE_HW, 0), Palette.shade(trim, 0.25), 1.5)
-
-	# --- build plate --------------------------------------------------------
-	IsoDraw.diamond(self, Vector2(0, PLATE_Y), PLATE_HW, PLATE_HH, Palette.STEEL_DARK)
-	IsoDraw.diamond(self, Vector2(0, PLATE_Y - 1.5), PLATE_HW - 2.0, PLATE_HH - 1.0, Palette.STEEL)
-
-	if _enclosed:
-		_draw_enclosed_frame(body, trim)
-	else:
-		_draw_open_frame(body, trim)
+	# An open machine wears its spool on an arm over the gantry, where the
+	# player can see what colour is loaded. An enclosed one keeps it inside.
+	if not _enclosed:
+		Props.draw(self, SPOOL, Props.mount(shell, "spool"), ARM_SPOOL_SCALE, filament_color)
 
 	if has_ams:
-		_draw_ams(trim)
-
-
-## Open bed-slinger frame: two rear uprights carrying a gantry beam.
-func _draw_open_frame(body: Color, trim: Color) -> void:
-	var post_y := PLATE_Y - 1.0
-	IsoDraw.post(self, Vector2(-BASE_HW * 0.62, post_y - BASE_HH * 0.30), 4.0, FRAME_H, trim)
-	IsoDraw.post(self, Vector2(BASE_HW * 0.62, post_y - BASE_HH * 0.30), 4.0, FRAME_H, trim)
-	# Gantry beam across the top, drawn as a flat slab so it reads as a rail.
-	IsoDraw.box(
-		self, Vector2(0, post_y - BASE_HH * 0.30 - FRAME_H + 6.0), BASE_HW * 0.72, 5.0, 6.0,
-		Palette.tint(trim, 0.18), trim, Palette.shade(trim, 0.2)
-	)
-	# Spool arm on the left upright, close enough to read as part of the machine.
-	var arm_y := post_y - FRAME_H * 0.62
-	var spool_at := Vector2(-BASE_HW * 0.62 - 13.0, arm_y + 4.0)
-	draw_line(Vector2(-BASE_HW * 0.62, arm_y), spool_at, trim, 3.0)
-	IsoDraw.spool(self, spool_at, 10.0, filament_color)
-
-
-## Enclosed frame: a glass box. Front faces are translucent so the print stays
-## visible — the point of the scene is watching the part appear.
-func _draw_enclosed_frame(body: Color, trim: Color) -> void:
-	var hw := BASE_HW * 0.96
-	var hh := BASE_HH * 0.96
-	var y := PLATE_Y - 1.0
-	var glass := Color(0.86, 0.94, 0.98, 0.30)
-
-	# Back faces first, so the model draws over them.
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(-hw, y), Vector2(0, y - hh), Vector2(0, y - hh - FRAME_H), Vector2(-hw, y - FRAME_H),
-	]), Palette.shade(body, 0.30))
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(0, y - hh), Vector2(hw, y), Vector2(hw, y - FRAME_H), Vector2(0, y - hh - FRAME_H),
-	]), Palette.shade(body, 0.16))
-	# Roof.
-	IsoDraw.box(
-		self, Vector2(0, y - FRAME_H + 5.0), hw, hh, 5.0,
-		Palette.tint(body, 0.12), Palette.shade(body, 0.08), Palette.shade(body, 0.24)
-	)
-	# Front glass, drawn after the model by the parent's ordering of children;
-	# here it is a light wash that keeps the interior readable.
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(-hw, y), Vector2(0, y + hh), Vector2(0, y + hh - FRAME_H), Vector2(-hw, y - FRAME_H),
-	]), glass)
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(0, y + hh), Vector2(hw, y), Vector2(hw, y - FRAME_H), Vector2(0, y + hh - FRAME_H),
-	]), glass)
-	# Corner posts to give the box definition.
-	IsoDraw.post(self, Vector2(-hw, y), 2.4, FRAME_H, trim)
-	IsoDraw.post(self, Vector2(hw, y), 2.4, FRAME_H, trim)
-
-
-## The multi-material unit, drawn as a small stack of spools beside the machine.
-func _draw_ams(trim: Color) -> void:
-	var at := Vector2(BASE_HW + 12.0, PLATE_Y - 6.0)
-	IsoDraw.solid(self, at, 13.0, 7.0, 16.0, Palette.STEEL)
-	var swatches := [Palette.FILAMENT["red"], Palette.FILAMENT["blue"],
-					 Palette.FILAMENT["yellow"], Palette.FILAMENT["green"]]
-	for i in 4:
-		draw_circle(at + Vector2(-6.0 + i * 4.0, -19.0), 1.9, swatches[i])
+		Props.draw(self, AMS, Props.mount(shell, "ams"), AMS_SCALE, body)

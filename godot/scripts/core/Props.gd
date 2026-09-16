@@ -142,6 +142,20 @@ func along(id: String, axis: String, scale: float = 1.0) -> Vector2:
 	return step * (extent * float(entry["px_per_unit"]) * scale)
 
 
+## A named point on a prop, in screen pixels from where it stands: the build
+## plate of a machine, the arm its spool hangs on. Measured off the model at
+## bake time (see tools/BakeProps.gd), so the code that puts a print on a plate
+## never has to know the shape of the machine under it.
+func mount(id: String, name: String, scale: float = 1.0) -> Vector2:
+	if not _props.has(id):
+		return Vector2.ZERO
+	var mounts: Dictionary = _props[id].get("mounts", {})
+	if not mounts.has(name):
+		return Vector2.ZERO
+	var point: Array = mounts[name]
+	return Vector2(float(point[0]), float(point[1])) * scale
+
+
 ## Draw a prop standing on `at`, which is where the middle of its base lands.
 ##
 ## `scale` is for props whose model is not the size the scene wants — a produce

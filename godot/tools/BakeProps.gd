@@ -81,13 +81,19 @@ func _load_recipes() -> Dictionary:
 ## Render one model and write its sprite. Returns its catalog entry.
 func _bake(recipe: Dictionary, scales: Dictionary, supersample: float) -> Dictionary:
 	var id := String(recipe["id"])
-	var path := "res://assets/kaykit/%s.gltf" % String(recipe["src"])
-	if not ResourceLoader.exists(path):
-		push_error("BakeProps: missing model %s" % path)
+	var inst: Node3D = null
+	if recipe.has("build"):
+		# Built in code — the packs have no 3D printer and no filament spool,
+		# and those are the two things this game is about. See PropModels.gd.
+		inst = PropModels.build(String(recipe["build"]))
+	else:
+		var path := "res://assets/kaykit/%s.gltf" % String(recipe["src"])
+		if not ResourceLoader.exists(path):
+			push_error("BakeProps: missing model %s" % path)
+			return {}
+		inst = (load(path) as PackedScene).instantiate()
+	if inst == null:
 		return {}
-
-	var scene: PackedScene = load(path)
-	var inst: Node3D = scene.instantiate()
 	inst.rotation_degrees = Vector3(0, float(recipe.get("yaw", 0.0)), 0)
 
 	# Pixels per model unit, at bake resolution. The sprite is drawn back down
@@ -178,9 +184,33 @@ func _bake(recipe: Dictionary, scales: Dictionary, supersample: float) -> Dictio
 		"sx": snappedf(bounds.size.x, 0.001),
 		"sy": snappedf(bounds.size.y, 0.001),
 		"sz": snappedf(bounds.size.z, 0.001),
-		"src": String(recipe["src"]),
+		"mounts": _mounts(recipe, base, basis, px_per_unit),
+		"src": String(recipe.get("src", recipe.get("build", ""))),
 		"px_per_unit": px_per_unit,
 	}
+
+
+## Named points on a model, in screen pixels from its anchor.
+##
+## A machine has places things belong: the build plate a print rises from, the
+## arm a spool hangs on, the lid an AMS sits on. Measuring those off the model
+## and shipping them in the catalogue is what keeps the game's code from having
+## to know the geometry — and keeps the two from drifting apart when a
+## proportion is changed here.
+func _mounts(
+	recipe: Dictionary, base: Vector3, basis: Basis, px_per_unit: float
+) -> Dictionary:
+	var out := {}
+	var yaw := deg_to_rad(float(recipe.get("yaw", 0.0)))
+	for name in recipe.get("mounts", {}):
+		var raw: Array = recipe["mounts"][name]
+		var point := Vector3(float(raw[0]), float(raw[1]), float(raw[2])).rotated(Vector3.UP, yaw)
+		var delta := point - base
+		out[name] = [
+			snappedf(delta.dot(basis.x) * px_per_unit, 0.01),
+			snappedf(-delta.dot(basis.y) * px_per_unit, 0.01),
+		]
+	return out
 
 
 func _min_w(bounds: AABB, basis: Basis) -> float:
@@ -218,6 +248,8 @@ func _flatten(root: Node3D) -> void:
 	for node in root.find_children("*", "MeshInstance3D", true, false):
 		var mesh_instance := node as MeshInstance3D
 		if mesh_instance.mesh == null:
+			continue
+		if mesh_instance.material_override is BaseMaterial3D:
 			continue
 		for surface in mesh_instance.mesh.get_surface_count():
 			var source := mesh_instance.mesh.surface_get_material(surface)

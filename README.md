@@ -183,19 +183,47 @@ each spool and how much filament is left on it, status lights, empty bays. It
 recolours from `Palette.gd` for free, which is why a fleet in six shell
 colours costs one drawing routine.
 
-**The furniture is modelled.** Work tables, walls, shelving, crates, plants
-and the rug come from [KayKit](https://kaylousberg.com) low-poly packs. They
-are not loaded as meshes. `godot/tools/BakeProps.gd` renders each chosen model
+**The furniture and the machines are modelled.** Work tables, walls, shelving,
+crates, plants and the rug come from [KayKit](https://kaylousberg.com)
+low-poly packs. The printers and the filament spools are not in any pack — and
+they are what this game is about — so they are built in code, in
+`godot/tools/PropModels.gd`, as boxes and cylinders: a proportion is changed by
+editing a number and reviewed in a diff.
+
+Neither is loaded as a mesh. `godot/tools/BakeProps.gd` renders each model
 once, offline, through an orthographic camera set to the game's own
 projection — yaw 45°, pitch 30°, which is exactly the 2:1 dimetric the rest of
-the farm is drawn in — and writes a sprite plus the anchor pixel that has to
-land on a grid position:
+the farm is drawn in — and writes a sprite, the anchor pixel that has to land
+on a grid position, and any **mount points** the model declares:
 
 ```
 godot/assets/kaykit/     source models, unmodified   (build input, never shipped)
+godot/tools/PropModels.gd  the printer and the spool, as geometry in code
 godot/tools/             prop_recipes.json + the baker
 godot/assets/props/      the sprites and props.json  (what the game draws)
 ```
+
+A mount point is a named place on a model — the build plate a print rises
+from, the arm a spool hangs on, the lid an AMS sits on. They are measured off
+the model at bake time and shipped in the catalogue, so `Printer.gd` puts a
+print on a plate without knowing the shape of the machine under it, and moving
+the plate in `PropModels.gd` moves the print, the nozzle and the spool with
+it.
+
+### What is a sprite and what is still drawn
+
+A machine's **shell** is a sprite — one for the open-frame bed slingers, one
+for the enclosed chambers, tinted with the model's skin colour, so six shell
+colours across two families cost two textures rather than twelve. An enclosed
+machine is two sprites, a chamber and its front pane, because the print has to
+be seen rising *through* the door.
+
+Everything that shows live state is still drawn by hand, because a sprite
+cannot say it: the part appearing layer by layer, the head sweeping the
+gantry, the status lamp, and the spool colour — which is the filament the
+server says is threaded, not a colour baked into the machine. The spool model
+bakes white for exactly that reason: one texture serves all nine filament
+colours and every fill level, on the rack and on the machine alike.
 
 Which models are used, and at what size, is entirely
 `godot/tools/prop_recipes.json`. Two scales matter:
@@ -212,13 +240,13 @@ Sprites are baked at 2× and drawn with mipmaps, so they stay sharp when the
 player pinches in and quiet when a 6×6 farm is framed whole.
 
 The source models are excluded from every export preset, and the whole of the
-workshop's furniture is **18 textures, 187 KB** in the shipped pack. Verified
+workshop's furniture is **23 textures, 206 KB** in the shipped pack. Verified
 on a real `npm run game:export:web`:
 
 ```
 $ strings client/web/index.pck | grep -c kaykit      0
 $ strings client/web/index.pck | grep -c '\.gltf'     0
-$ du -h client/web/index.pck                         900K   (the whole game)
+$ du -h client/web/index.pck                         924K   (the whole game)
 ```
 
 No mesh, no material and no 3D renderer reaches the device.
@@ -236,6 +264,12 @@ and *Prototype Bits*, all **CC0**. Of the 269 models in the three packs, the
 `godot/assets/kaykit/`, each pack with its own `LICENSE.txt`. They bake to 18
 sprites: the wall and the window are each baked twice, once per wall of the
 room, from the same model at a different yaw.
+
+The printers and the spools are not KayKit and are not from anywhere else —
+they are built in `godot/tools/PropModels.gd`, so there is nothing to licence
+and nothing to attribute. If you would rather use a bought or downloaded
+printer model, drop the `.gltf` under `godot/assets/kaykit/` and point the
+recipe's `src` at it instead of its `build`; the bake takes any glTF.
 
 ---
 

@@ -131,14 +131,6 @@ static func panel_left(
 	]), fill)
 
 
-## A filament spool seen edge-on: a disc with a darker hub.
-static func spool(ci: CanvasItem, centre: Vector2, radius: float, color: Color) -> void:
-	ci.draw_circle(centre, radius, Palette.shade(color, 0.22))
-	ci.draw_circle(centre, radius * 0.86, color)
-	ci.draw_circle(centre, radius * 0.32, Palette.CREAM)
-	ci.draw_circle(centre, radius * 0.16, Palette.shade(color, 0.35))
-
-
 ## A rounded chip behind scene labels, so text stays readable over any floor.
 static func chip(ci: CanvasItem, rect: Rect2, fill: Color, radius: float = 6.0) -> void:
 	ci.draw_rect(Rect2(rect.position + Vector2(radius, 0), Vector2(rect.size.x - radius * 2.0, rect.size.y)), fill)
